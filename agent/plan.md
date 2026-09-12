@@ -52,46 +52,54 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 ---
 
 ## Phase 2: Lobby Backend
-> **Goal:** Implement in-memory lobby management, room isolation, password security, ready-state logic, and socket lifecycle handling.
+> **Goal:** Implement in-memory lobby management, room isolation, password security, unique plane model pool allocation, ready-state logic, and socket lifecycle handling.
 > **Status:** [ ] **PENDING (Next Step)**
 
 - [ ] **2.1 In-Memory Lobby Store Architecture**
   - [ ] Create `LobbyManager` class in `packages/server/src/lobby/LobbyManager.ts`.
   - [ ] Implement data structures for active lobbies: `Map<string, Lobby>` and player-to-lobby index `Map<string, string>`.
-  - [ ] Define lobby entity state (players list, color assignment pool, privacy flag, hashed password, game status).
+  - [ ] Define lobby entity state (players list, color assignment pool, plane selection pool, privacy flag, hashed password, game status).
 - [ ] **2.2 Lobby Creation & Room Generation**
   - [ ] Implement short unique room code generator (e.g. 6-character alphanumeric like `LOBY12`).
   - [ ] Handle `create-lobby` socket event with nickname validation (trim, length 2–16, profanity/empty guard).
   - [ ] Implement optional password hashing (using Node crypto `scrypt` or `bcrypt`) for private lobbies.
-  - [ ] Assign creator the first available color (`red`) and add socket to Socket.io room `lobby:${lobbyId}`.
-- [ ] **2.3 Player Join & Color Allocation**
+  - [ ] Assign creator the first available color (`red`) and first available plane model (`plane-1`).
+  - [ ] Add socket to Socket.io room `lobby:${lobbyId}`.
+- [ ] **2.3 Player Join, Color & Unique Plane Allocation**
   - [ ] Handle `join-lobby` socket event.
   - [ ] Validate lobby existence, game-not-started status, and max player capacity (`MAX_PLAYERS_PER_LOBBY = 4`).
   - [ ] Validate password for private lobbies (timing-safe comparison).
   - [ ] Allocate next available color from pool (`['red', 'blue', 'green', 'yellow']`).
-  - [ ] Broadcast updated `lobby-state-update` to all clients in the room.
-- [ ] **2.4 Ready Check & Auto-Start Trigger**
+  - [ ] Allocate an initial available plane model from the remaining pool (`['plane-1', ..., 'plane-11']`).
+  - [ ] Broadcast updated `lobby-state-update` (players, colors, assigned planes, remaining available planes) to room.
+- [ ] **2.4 Unique Plane Selection Handling**
+  - [ ] Handle `select-plane` socket event (`{ planeId: string }`).
+  - [ ] Validate requested `planeId`: exists in supported pool (`plane-1` .. `plane-11`), is currently unclaimed by other players in the lobby, and lobby game is not started.
+  - [ ] Reclaim previously selected plane model back to the lobby's available pool.
+  - [ ] Assign new plane model to the player and lock it from other players.
+  - [ ] Broadcast updated `lobby-state-update` with latest plane assignments and remaining pool.
+- [ ] **2.5 Ready Check & Auto-Start Trigger**
   - [ ] Handle `toggle-ready` socket event (`ready: boolean`).
   - [ ] Update player's ready state and broadcast `lobby-state-update`.
   - [ ] Evaluate start condition: total players >= `MIN_PLAYERS_TO_START` (2) AND 100% of connected players are marked `ready === true`.
-  - [ ] When condition met: mark lobby `isGameStarted = true`, emit `game-started` event to room, and initialize game loop instance.
-- [ ] **2.5 Disconnection & Cleanup Lifecycle**
+  - [ ] When condition met: mark lobby `isGameStarted = true`, lock plane selections permanently for the match, emit `game-started` event to room, and initialize game loop instance.
+- [ ] **2.6 Disconnection & Cleanup Lifecycle**
   - [ ] Handle player graceful exit (`leave-lobby`) and socket disconnect (`disconnecting` / `disconnect`).
-  - [ ] Reclaim departed player's color back into the pool.
+  - [ ] Reclaim departed player's color and plane model back into the available pools.
   - [ ] If game has not started, remove player, update remaining clients with `lobby-state-update`.
   - [ ] If all players leave, destroy lobby and clean up all allocated timers/memory.
-  - [ ] Handle in-game disconnects (mark plane dead/removed).
-- [ ] **2.6 Public Lobby Listing & Broadcasting**
+  - [ ] Handle in-game disconnects (mark plane dead/removed, retain unique plane assignment).
+- [ ] **2.7 Public Lobby Listing & Broadcasting**
   - [ ] Handle `get-lobbies` socket request.
   - [ ] Return sanitized `LobbySummary[]` (id, name, isPrivate, playerCount, maxPlayers) excluding passwords.
   - [ ] Automatically broadcast updated lobby list to players currently in the lobby browser.
-- [ ] **2.7 Verification & Integration Tests**
-  - [ ] Create automated socket integration test script simulating 2–4 players creating, joining, toggling ready, and verifying auto-start event.
+- [ ] **2.8 Verification & Integration Tests**
+  - [ ] Create automated socket integration test script simulating 2–4 players creating, joining, selecting planes (verifying collision rejection when selecting an already claimed plane), toggling ready, and verifying auto-start event.
 
 ---
 
 ## Phase 3: Lobby UI & Frontend Integration
-> **Goal:** Build the complete Tailwind CSS lobby interface overlaid on top of Phaser, URL hash routing, and event wiring.
+> **Goal:** Build the complete Tailwind CSS lobby interface overlaid on top of Phaser, URL hash routing, interactive plane selector, and event wiring.
 > **Status:** [ ] **PENDING**
 
 - [ ] **3.1 UI State Machine & Container Layout**
@@ -107,19 +115,25 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 - [ ] **3.4 Lobby Browser Screen**
   - [ ] Tabular or card view of public lobbies with name, player count badge (`2/4`), and "Join" button.
   - [ ] Auto-refresh on lobby list broadcast + manual "Refresh" button.
-- [ ] **3.5 Active Lobby Room View**
+- [ ] **3.5 Active Lobby Room View & Unique Plane Selector**
   - [ ] Display lobby ID, privacy badge, and shareable link.
   - [ ] Player slots (up to 4) displaying:
-    - Assigned color plane icon/badge (`red`, `blue`, `green`, `yellow`).
     - Player nickname (with `(You)` badge).
+    - Assigned color badge (`red`, `blue`, `green`, `yellow`).
+    - Chosen plane model preview thumbnail (`plane-1` through `plane-11`).
     - Ready status badge (`READY` in green, `NOT READY` in amber).
+  - [ ] **Interactive Plane Selection Component:**
+    - Visual carousel/grid rendering plane sprites from `packages/client/assets/planes/`.
+    - Live availability state: clearly highlight selectable (available) planes vs disabled/taken planes (chosen by other players).
+    - Selecting a plane emits `select-plane` to server; immediate UI reflection on confirmation.
+    - Locks selection when player toggles "READY".
   - [ ] Action buttons: Big "READY / UNREADY" toggle button, "Leave Lobby" button.
   - [ ] Status banner: e.g. *"Waiting for all players to ready up (2/2 ready)..."*
 - [ ] **3.6 Transition into Game**
   - [ ] Listen for `game-started` socket event.
   - [ ] Smoothly fade out HTML UI overlay (`opacity-0 pointer-events-none`) and enable Phaser canvas input.
 - [ ] **3.7 Verification**
-  - [ ] Test multi-window lobby joining, ready toggle synchronization, and direct hash URL joins.
+  - [ ] Test multi-window lobby joining, real-time mutual exclusion of plane selections across tabs, ready toggle synchronization, and direct hash URL joins.
 
 ---
 
@@ -129,7 +143,7 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 
 - [ ] **4.1 Game Room Loop Architecture**
   - [ ] Create `GameRoom` class running at 30 Hz tick interval (~33.3ms) via high-resolution timer.
-  - [ ] Track simulation state: tick number, active planes, active bullets, respawn queues.
+  - [ ] Track simulation state: tick number, active planes (including their fixed `planeId`), active bullets, respawn queues.
 - [ ] **4.2 Plane Kinematics & Input Processing**
   - [ ] Buffer and apply client `input-update` ({ left, right, fire }).
   - [ ] Apply constant forward velocity:  
@@ -156,6 +170,7 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
   - [ ] Broadcast `player-hit` and `player-destroyed` events with coordinates and updated scores.
   - [ ] Queue 5-second respawn timer.
   - [ ] Respawn logic: pick random arena edge, facing inwards, instantly re-entering with forward momentum.
+  - [ ] Preserves the player's unique `planeId` across all respawns.
 - [ ] **4.7 Game State Broadcast**
   - [ ] On each tick (33ms), construct `GameStateTick` and broadcast `game-tick` to room sockets.
 - [ ] **4.8 Verification**
@@ -164,31 +179,41 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 ---
 
 ## Phase 5: Client Rendering & Phaser Presentation
-> **Goal:** Render pixel-art planes, interpolate server ticks for smooth 60fps visuals, add particle effects, audio/SFX, and HUD.
+> **Goal:** Render multi-layer TileSprite parallax backgrounds, unique pixel-art planes, interpolated 60fps visuals, particle effects, audio/SFX, and HUD.
 > **Status:** [ ] **PENDING**
 
-- [ ] **5.1 Pixel-Art Asset Creation & Pipeline**
-  - [ ] Generate/create low-res pixel-art plane sprites for all 4 colors (`red`, `blue`, `green`, `yellow`).
+- [ ] **5.1 Asset Pipeline & Texture Loading**
+  - [ ] Load 11 plane sprites (`plane-1.png` through `plane-11.png`) from `packages/client/assets/planes/`.
+  - [ ] Load multi-layer seamless/tileable cloud background packs from `packages/client/assets/backgrounds/` (`Clouds 1` through `Clouds 8`, each containing layer textures `1.png`, `2.png`, `3.png`, `4.png`).
   - [ ] Pixel bullet sprites, muzzle flashes, and explosion frames/particles.
-  - [ ] Load textures with nearest-neighbor crisp filtering (`pixelArt: true`).
-- [ ] **5.2 Phaser Scene Setup & Entity Management**
+  - [ ] Configure texture filtering with nearest-neighbor crisp filtering (`pixelArt: true`).
+- [ ] **5.2 Multi-Layer Parallax Backgrounds with `TileSprite`**
+  - [ ] In `ArenaScene`, create a stacked series of `Phaser.GameObjects.TileSprite` instances for the background layers.
+  - [ ] Size each `TileSprite` to match the arena dimensions (`1280x720`).
+  - [ ] In the scene `update()` loop, scroll each layer independently at distinct differential speeds:
+    - Adjust `tilePositionX` (and subtle `tilePositionY`) continuously in an infinite loop.
+    - Slower speeds for distant backdrops (sky/distant clouds), progressively faster speeds for foreground cloud layers.
+    - Yields a seamless, infinite loop depth illusion.
+- [ ] **5.3 Phaser Scene Setup & Entity Management**
   - [ ] Transition from `BootScene` into `ArenaScene`.
   - [ ] Maintain sprite pools for planes and bullets mapped to entity IDs.
-- [ ] **5.3 Input Handling**
+  - [ ] Instantiate each player's plane using their unique selected plane texture (`plane-1` through `plane-11`) confirmed by the server.
+- [ ] **5.4 Input Handling**
   - [ ] Capture Keyboard arrows (Left, Right) and Spacebar (Fire).
   - [ ] Send `input-update` delta events on key state transitions to minimize bandwidth.
-- [ ] **5.4 Interpolation & Client Reconciliation**
+- [ ] **5.5 Interpolation & Client Reconciliation**
   - [ ] Interpolate plane positions (`lerp`) and rotations (`slerp` / angle delta) between server ticks for silky 60fps movement.
   - [ ] Handle seamless screen-wrapping interpolation without visual snapping across the screen.
-- [ ] **5.5 Visual & Particle Effects**
+- [ ] **5.6 Visual & Particle Effects**
   - [ ] Engine smoke/trail particle emitter behind flying planes.
   - [ ] Muzzle flash on bullet firing.
   - [ ] Explosions with particle burst on plane destruction.
   - [ ] Camera screen shake on nearby hits.
-- [ ] **5.6 In-Game HUD**
-  - [ ] Real-time leaderboard overlay in corner (player names, colors, kills/scores).
+- [ ] **5.7 In-Game HUD**
+  - [ ] Real-time leaderboard overlay in corner (player names, plane avatars, kills/scores).
   - [ ] Respawn countdown overlay ("Respawning in 3... 2... 1...").
   - [ ] Match leave button / return to lobby.
-- [ ] **5.7 Final Polish & Verification**
+- [ ] **5.8 Final Polish & Verification**
   - [ ] Full end-to-end multi-client playtesting in Docker.
+  - [ ] Verify infinite loop TileSprite parallax motion and verify unique plane selections stay persistent across game lifecycle.
   - [ ] Latency and responsiveness checks under simulated network jitter.
