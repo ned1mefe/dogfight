@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DOGFIGHT — Pixel Art Airplane Combat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-950 text-slate-100 min-h-screen overflow-hidden select-none font-sans">
+    <div id="app" class="relative w-screen h-screen flex items-center justify-center bg-slate-950">
+      <!-- Phaser Canvas Container -->
+      <div id="game-container" class="absolute inset-0 flex items-center justify-center z-0"></div>
+
+      <!-- HTML/Tailwind UI Overlay Layer -->
+      <div id="ui-overlay" class="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center">
+        <!-- Initial Phase 1 Placeholder Badge -->
+        <div id="phase1-badge" class="pointer-events-auto bg-slate-900/90 border border-slate-700/80 backdrop-blur-md rounded-xl p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+          <div class="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-mono font-bold tracking-widest uppercase">
+            Phase 1: Setup & Scaffolding
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-wider text-white" style="font-family: 'Press Start 2P', monospace;">
+            DOGFIGHT
+          </h1>
+          <p class="text-slate-400 text-sm">
+            Monorepo, shared type contracts, Express/Socket.io backend, and Phaser 3 canvas engine successfully initialized.
+          </p>
+          <div class="pt-2 flex items-center justify-center space-x-2 text-xs text-emerald-400 font-mono">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="connection-status">Connecting to server...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

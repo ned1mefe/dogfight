@@ -1,0 +1,22 @@
+{
+  "name": "dogfight-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build:shared": "npm run build --workspace=@dogfight/shared",
+    "build:server": "npm run build --workspace=@dogfight/server",
+    "build:client": "npm run build --workspace=@dogfight/client",
+    "dev:server": "npm run dev --workspace=@dogfight/server",
+    "dev:client": "npm run dev --workspace=@dogfight/client",
+    "dev": "npm run build:shared && concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.2"
+  }
+}
