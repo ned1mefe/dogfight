@@ -8,41 +8,79 @@ import {
   ServerToClientEvents
 } from '@dogfight/shared';
 
+import { UIManager } from './ui/UIManager.js';
+import { toast } from './ui/toast.js';
+import { parseLobbyHash } from './ui/router.js';
+
 // Initialize Socket.io connection
-const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
+export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
   autoConnect: true,
   transports: ['websocket', 'polling']
 });
 
-const statusEl = document.getElementById('connection-status');
+// Initialize UI Manager
+export const uiManager = new UIManager('ui-overlay');
+uiManager.setSocket(socket);
 
+// Socket Lifecycle & Event Wiring
 socket.on('connect', () => {
   console.log(`[Client] Connected to server: ${socket.id}`);
-  if (statusEl) {
-    const idPrefix = socket.id ? socket.id.slice(0, 6) : 'online';
-    statusEl.textContent = `Connected (Socket ID: ${idPrefix}...)`;
-    statusEl.parentElement?.classList.remove('text-amber-400', 'text-red-400');
-    statusEl.parentElement?.classList.add('text-emerald-400');
+  uiManager.setSocketStatus(true, socket.id ?? null);
+
+  // Request open public lobbies
+  socket.emit('get-lobbies');
+
+  // Check URL hash for direct room invite on connection
+  const targetCode = parseLobbyHash();
+  if (targetCode && !uiManager.state.currentLobby) {
+    uiManager.promptJoinLobby(targetCode);
   }
 });
 
 socket.on('disconnect', () => {
   console.log('[Client] Disconnected from server');
-  if (statusEl) {
-    statusEl.textContent = 'Disconnected. Reconnecting...';
-    statusEl.parentElement?.classList.remove('text-emerald-400');
-    statusEl.parentElement?.classList.add('text-amber-400');
-  }
+  uiManager.setSocketStatus(false, null);
 });
 
 socket.on('connect_error', (err) => {
   console.warn('[Client] Socket connection error:', err.message);
-  if (statusEl) {
-    statusEl.textContent = 'Server offline (dev mode)';
-    statusEl.parentElement?.classList.remove('text-emerald-400');
-    statusEl.parentElement?.classList.add('text-amber-400');
+  uiManager.setSocketStatus(false, null);
+});
+
+// Real-time Lobby Events
+socket.on('lobby-state-update', (state) => {
+  console.log('[Client] Received lobby state update:', state);
+  uiManager.setLobbyState(state);
+});
+
+socket.on('lobbies-list', (lobbies) => {
+  uiManager.setPublicLobbies(lobbies);
+});
+
+socket.on('lobby-left', () => {
+  uiManager.clearLobby();
+  toast.show('Departed from combat room', 'info');
+});
+
+socket.on('error-message', (err) => {
+  toast.show(err.message, 'error');
+});
+
+socket.on('game-started', (payload) => {
+  toast.show('All pilots ready! Scrambling fighter wing...', 'success', 3500);
+  uiManager.setView('IN_GAME');
+});
+
+// Listen for direct URL hash changes while app is open
+window.addEventListener('hashchange', () => {
+  const targetCode = parseLobbyHash();
+  if (targetCode && !uiManager.state.currentLobby) {
+    uiManager.promptJoinLobby(targetCode);
   }
 });
+
+// Initial UI Render
+uiManager.render();
 
 // Setup Initial Phaser Scene
 class BootScene extends Phaser.Scene {

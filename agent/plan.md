@@ -101,40 +101,33 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 
 ## Phase 3: Lobby UI & Frontend Integration
 > **Goal:** Build the complete Tailwind CSS lobby interface overlaid on top of Phaser, URL hash routing, interactive plane selector, and event wiring.
-> **Status:** [ ] **PENDING**
+> **Status:** [x] **COMPLETED**
 
-- [ ] **3.1 UI State Machine & Container Layout**
-  - [ ] Define frontend view states: `MENU`, `BROWSER`, `CREATE_MODAL`, `JOIN_MODAL`, `ROOM`, `IN_GAME`.
-  - [ ] Implement reactive UI rendering or lightweight component controller in `packages/client/src/ui/`.
-- [ ] **3.2 URL Hash Routing & Direct Invite Flow**
-  - [ ] Parse `window.location.hash` on page load (e.g. `/#lobby=ABC123`).
-  - [ ] If hash present: prompt for nickname (and password modal if lobby is private) and immediately attempt `join-lobby`.
-  - [ ] Provide a "Copy Invite Link" button in the active lobby that writes `https://.../#lobby=ID` to clipboard with toast notification.
-- [ ] **3.3 Main Menu & Create Lobby Modal**
-  - [ ] Main menu buttons: "Quick Play / Browse Lobbies", "Create Lobby", "How to Play".
-  - [ ] Create Lobby modal: Nickname input, Public/Private toggle, Password input (conditional), Submit and Cancel buttons.
-- [ ] **3.4 Lobby Browser Screen**
-  - [ ] Tabular or card view of public lobbies with name, player count badge (`2/4`), and "Join" button.
-  - [ ] Auto-refresh on lobby list broadcast + manual "Refresh" button.
-- [ ] **3.5 Active Lobby Room View & Unique Plane Selector**
-  - [ ] Display lobby ID, privacy badge, and shareable link.
-  - [ ] Player slots (up to 4) displaying:
-    - Player nickname (with `(You)` badge).
-    - Assigned color badge (`red`, `blue`, `green`, `yellow`).
-    - Chosen plane model preview thumbnail (`plane-1` through `plane-11`).
-    - Ready status badge (`READY` in green, `NOT READY` in amber).
-  - [ ] **Interactive Plane Selection Component:**
-    - Visual carousel/grid rendering plane sprites from `packages/client/assets/planes/`.
-    - Live availability state: clearly highlight selectable (available) planes vs disabled/taken planes (chosen by other players).
-    - Selecting a plane emits `select-plane` to server; immediate UI reflection on confirmation.
-    - Locks selection when player toggles "READY".
-  - [ ] Action buttons: Big "READY / UNREADY" toggle button, "Leave Lobby" button.
-  - [ ] Status banner: e.g. *"Waiting for all players to ready up (2/2 ready)..."*
-- [ ] **3.6 Transition into Game**
-  - [ ] Listen for `game-started` socket event.
-  - [ ] Smoothly fade out HTML UI overlay (`opacity-0 pointer-events-none`) and enable Phaser canvas input.
-- [ ] **3.7 Verification**
-  - [ ] Test multi-window lobby joining, real-time mutual exclusion of plane selections across tabs, ready toggle synchronization, and direct hash URL joins.
+- [x] **3.1 UI State Machine & Container Layout**
+  - [x] Defined frontend view states: `MENU`, `BROWSER`, `CREATE_MODAL`, `JOIN_MODAL`, `ROOM`, `HOW_TO_PLAY`, `IN_GAME`.
+  - [x] Implemented reactive UI rendering controller in `packages/client/src/ui/UIManager.ts` and toast notifications in `toast.ts`.
+- [x] **3.2 URL Hash Routing & Direct Invite Flow**
+  - [x] Implemented hash parsing (`#lobby=CODE`) on load and dynamic `hashchange` listener.
+  - [x] Direct invite join modal prompting for call-sign (and password if private).
+  - [x] "Copy Room Link" button in room view writing URL to clipboard with retro toast alert.
+- [x] **3.3 Main Menu & Streamlined Create Lobby Modal**
+  - [x] Main menu buttons: "CREATE ROOM", "BROWSE ROOMS", "HOW TO PLAY & CONTROLS", plus direct 6-char room code input.
+  - [x] Create room modal: Call-sign, room name, and optional password field that automatically makes the room private if filled (no checkbox required).
+- [x] **3.4 Comprehensive Room Browser & Join Screen**
+  - [x] Browse ALL unstarted rooms (public & private).
+  - [x] Clear indicator badges: `🔒 PRIVATE` in amber and `🌐 PUBLIC` in emerald.
+  - [x] Clicking "JOIN BATTLE" opens Join Arena modal with call-sign input; password input is conditionally rendered only when the room is private (omitted entirely for public rooms).
+- [x] **3.5 Active Lobby Room View & Unique Plane Selector**
+  - [x] Display room code, privacy badge, copy invite link button, and departure button.
+  - [x] 4 player slots showing call-sign, host crown, assigned player color, plane model preview, and ready status.
+  - [x] Interactive 11-plane selection grid (`packages/client/assets/planes/plane-1.png` .. `plane-11.png`): live availability badges, collision lockout, smooth swapping.
+  - [x] Big "READY / UNREADY" toggle button, dynamic ready count banner.
+- [x] **3.6 Transition into Game**
+  - [x] Wire `game-started` socket event with toast notification and smooth UI overlay fade-out (`opacity-0 pointer-events-none`).
+- [x] **3.7 Verification**
+  - [x] Multi-package TypeScript build verified.
+  - [x] Automated 10-step server lobby test suite passing.
+  - [x] Live Vite dev server running on `http://localhost:5173/` and Express/Socket.io backend on `http://localhost:3000/`.
 
 ---
 

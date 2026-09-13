@@ -161,7 +161,7 @@ export class LobbyManager {
   public getPublicLobbies(): LobbySummary[] {
     const result: LobbySummary[] = [];
     for (const lobby of this.lobbies.values()) {
-      if (!lobby.isPrivate && !lobby.isGameStarted) {
+      if (!lobby.isGameStarted) {
         result.push(lobby.toSummary());
       }
     }

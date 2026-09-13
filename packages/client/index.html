@@ -15,24 +15,10 @@
       <div id="game-container" class="absolute inset-0 z-0 overflow-hidden"></div>
 
       <!-- HTML/Tailwind UI Overlay Layer -->
-      <div id="ui-overlay" class="absolute inset-0 z-10 pointer-events-none flex flex-col items-center justify-center">
-        <!-- Initial Phase 1 Placeholder Badge -->
-        <div id="phase1-badge" class="pointer-events-auto bg-slate-900/90 border border-slate-700/80 backdrop-blur-md rounded-xl p-8 max-w-md w-full shadow-2xl text-center space-y-4">
-          <div class="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-mono font-bold tracking-widest uppercase">
-            Phase 1: Setup & Scaffolding
-          </div>
-          <h1 class="text-3xl font-extrabold tracking-wider text-white" style="font-family: 'Press Start 2P', monospace;">
-            DOGFIGHT
-          </h1>
-          <p class="text-slate-400 text-sm">
-            Monorepo, shared type contracts, Express/Socket.io backend, and Phaser 3 canvas engine successfully initialized.
-          </p>
-          <div class="pt-2 flex items-center justify-center space-x-2 text-xs text-emerald-400 font-mono">
-            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span id="connection-status">Connecting to server...</span>
-          </div>
-        </div>
-      </div>
+      <div id="ui-overlay" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-6 select-none"></div>
+
+      <!-- Toast Notification Container -->
+      <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full px-4"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
