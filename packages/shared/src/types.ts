@@ -1,4 +1,7 @@
+import { PLANE_IDS } from './constants.js';
+
 export type PlayerColor = 'red' | 'blue' | 'green' | 'yellow';
+export type PlaneId = (typeof PLANE_IDS)[number];
 
 export interface PlayerInput {
   left: boolean;
@@ -10,6 +13,8 @@ export interface PlayerState {
   id: string;
   username: string;
   color: PlayerColor;
+  planeId: PlaneId;
+  isHost: boolean;
   x: number;
   y: number;
   rotation: number; // in radians
@@ -39,8 +44,10 @@ export interface LobbySummary {
 
 export interface LobbyState {
   id: string;
+  name: string;
   isPrivate: boolean;
   players: PlayerState[];
+  availablePlanes: PlaneId[];
   isGameStarted: boolean;
 }
 

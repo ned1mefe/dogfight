@@ -9,8 +9,8 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 | Phase | Description | Status |
 | :--- | :--- | :--- |
 | **Phase 1** | Setup & Scaffolding | **COMPLETED** (`100%`) |
-| **Phase 2** | Lobby Backend | **READY TO START** (`0%`) |
-| **Phase 3** | Lobby UI & Frontend Integration | **PENDING** (`0%`) |
+| **Phase 2** | Lobby Backend | **COMPLETED** (`100%`) |
+| **Phase 3** | Lobby UI & Frontend Integration | **READY TO START** (`0%`) |
 | **Phase 4** | Server-Authoritative Game Engine & Physics | **PENDING** (`0%`) |
 | **Phase 5** | Client Rendering & Phaser Presentation | **PENDING** (`0%`) |
 
@@ -53,48 +53,49 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 
 ## Phase 2: Lobby Backend
 > **Goal:** Implement in-memory lobby management, room isolation, password security, unique plane model pool allocation, ready-state logic, and socket lifecycle handling.
-> **Status:** [ ] **PENDING (Next Step)**
+> **Status:** [x] **COMPLETED**
 
-- [ ] **2.1 In-Memory Lobby Store Architecture**
-  - [ ] Create `LobbyManager` class in `packages/server/src/lobby/LobbyManager.ts`.
-  - [ ] Implement data structures for active lobbies: `Map<string, Lobby>` and player-to-lobby index `Map<string, string>`.
-  - [ ] Define lobby entity state (players list, color assignment pool, plane selection pool, privacy flag, hashed password, game status).
-- [ ] **2.2 Lobby Creation & Room Generation**
-  - [ ] Implement short unique room code generator (e.g. 6-character alphanumeric like `LOBY12`).
-  - [ ] Handle `create-lobby` socket event with nickname validation (trim, length 2–16, profanity/empty guard).
-  - [ ] Implement optional password hashing (using Node crypto `scrypt` or `bcrypt`) for private lobbies.
-  - [ ] Assign creator the first available color (`red`) and first available plane model (`plane-1`).
-  - [ ] Add socket to Socket.io room `lobby:${lobbyId}`.
-- [ ] **2.3 Player Join, Color & Unique Plane Allocation**
-  - [ ] Handle `join-lobby` socket event.
-  - [ ] Validate lobby existence, game-not-started status, and max player capacity (`MAX_PLAYERS_PER_LOBBY = 4`).
-  - [ ] Validate password for private lobbies (timing-safe comparison).
-  - [ ] Allocate next available color from pool (`['red', 'blue', 'green', 'yellow']`).
-  - [ ] Allocate an initial available plane model from the remaining pool (`['plane-1', ..., 'plane-11']`).
-  - [ ] Broadcast updated `lobby-state-update` (players, colors, assigned planes, remaining available planes) to room.
-- [ ] **2.4 Unique Plane Selection Handling**
-  - [ ] Handle `select-plane` socket event (`{ planeId: string }`).
-  - [ ] Validate requested `planeId`: exists in supported pool (`plane-1` .. `plane-11`), is currently unclaimed by other players in the lobby, and lobby game is not started.
-  - [ ] Reclaim previously selected plane model back to the lobby's available pool.
-  - [ ] Assign new plane model to the player and lock it from other players.
-  - [ ] Broadcast updated `lobby-state-update` with latest plane assignments and remaining pool.
-- [ ] **2.5 Ready Check & Auto-Start Trigger**
-  - [ ] Handle `toggle-ready` socket event (`ready: boolean`).
-  - [ ] Update player's ready state and broadcast `lobby-state-update`.
-  - [ ] Evaluate start condition: total players >= `MIN_PLAYERS_TO_START` (2) AND 100% of connected players are marked `ready === true`.
-  - [ ] When condition met: mark lobby `isGameStarted = true`, lock plane selections permanently for the match, emit `game-started` event to room, and initialize game loop instance.
-- [ ] **2.6 Disconnection & Cleanup Lifecycle**
-  - [ ] Handle player graceful exit (`leave-lobby`) and socket disconnect (`disconnecting` / `disconnect`).
-  - [ ] Reclaim departed player's color and plane model back into the available pools.
-  - [ ] If game has not started, remove player, update remaining clients with `lobby-state-update`.
-  - [ ] If all players leave, destroy lobby and clean up all allocated timers/memory.
-  - [ ] Handle in-game disconnects (mark plane dead/removed, retain unique plane assignment).
-- [ ] **2.7 Public Lobby Listing & Broadcasting**
-  - [ ] Handle `get-lobbies` socket request.
-  - [ ] Return sanitized `LobbySummary[]` (id, name, isPrivate, playerCount, maxPlayers) excluding passwords.
-  - [ ] Automatically broadcast updated lobby list to players currently in the lobby browser.
-- [ ] **2.8 Verification & Integration Tests**
-  - [ ] Create automated socket integration test script simulating 2–4 players creating, joining, selecting planes (verifying collision rejection when selecting an already claimed plane), toggling ready, and verifying auto-start event.
+- [x] **2.1 In-Memory Lobby Store Architecture**
+  - [x] Create `LobbyManager` class in `packages/server/src/lobby/LobbyManager.ts`.
+  - [x] Implement data structures for active lobbies: `Map<string, Lobby>` and player-to-lobby index `Map<string, string>`.
+  - [x] Define lobby entity state (players list, color assignment pool, plane selection pool, privacy flag, hashed password, game status).
+- [x] **2.2 Lobby Creation & Room Generation**
+  - [x] Implement short unique room code generator (6-character uppercase alphanumeric without ambiguous chars).
+  - [x] Handle `create-lobby` socket event with nickname validation (trim, length 2–16).
+  - [x] Implement password hashing (`node:crypto.scryptSync` + random salt) and timing-safe comparison for private lobbies.
+  - [x] Assign creator the first available color (`red`) and first available plane model (`plane-1`).
+  - [x] Add socket to Socket.io room `lobby:${lobbyId}`.
+- [x] **2.3 Player Join, Color & Unique Plane Allocation**
+  - [x] Handle `join-lobby` socket event.
+  - [x] Validate lobby existence, game-not-started status, and max player capacity (`MAX_PLAYERS_PER_LOBBY = 4`).
+  - [x] Validate password for private lobbies (timing-safe comparison).
+  - [x] Allocate next available color from pool (`['red', 'blue', 'green', 'yellow']`).
+  - [x] Allocate an initial available plane model from the remaining pool (`['plane-1', ..., 'plane-11']`).
+  - [x] Broadcast updated `lobby-state-update` (players, colors, assigned planes, remaining available planes) to room.
+- [x] **2.4 Unique Plane Selection Handling**
+  - [x] Handle `select-plane` socket event (`{ planeId: PlaneId }`).
+  - [x] Validate requested `planeId`: exists in supported pool (`plane-1` .. `plane-11`), is currently unclaimed by other players in the lobby, and lobby game is not started.
+  - [x] Reclaim previously selected plane model back to the lobby's available pool.
+  - [x] Assign new plane model to the player and lock it from other players.
+  - [x] Broadcast updated `lobby-state-update` with latest plane assignments and remaining pool.
+- [x] **2.5 Ready Check & Auto-Start Trigger**
+  - [x] Handle `toggle-ready` socket event (`ready: boolean`).
+  - [x] Update player's ready state and broadcast `lobby-state-update`.
+  - [x] Evaluate start condition: total players >= `MIN_PLAYERS_TO_START` (2) AND 100% of connected players are marked `ready === true`.
+  - [x] When condition met: mark lobby `isGameStarted = true`, lock plane selections permanently for the match, emit `game-started` event to room.
+- [x] **2.6 Disconnection & Cleanup Lifecycle**
+  - [x] Handle player graceful exit (`leave-lobby`) and socket disconnect (`disconnecting` / `disconnect`).
+  - [x] Reclaim departed player's color and plane model back into the available pools.
+  - [x] If game has not started, remove player, update remaining clients with `lobby-state-update`.
+  - [x] If all players leave, destroy lobby and clean up all allocated memory.
+  - [x] Reassign host to next player if creator leaves.
+- [x] **2.7 Public Lobby Listing & Broadcasting**
+  - [x] Handle `get-lobbies` socket request.
+  - [x] Return sanitized `LobbySummary[]` (id, name, isPrivate, playerCount, maxPlayers) excluding passwords.
+  - [x] Automatically broadcast updated lobby list to players currently in the lobby browser.
+- [x] **2.8 Verification & Integration Tests**
+  - [x] Created automated socket integration test script simulating 2–5 players creating, joining, selecting planes (verifying collision rejection when selecting an already claimed plane), toggling ready, and verifying auto-start event.
+  - [x] All 10 verification scenarios passed with exit code 0.
 
 ---
 

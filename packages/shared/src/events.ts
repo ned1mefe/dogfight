@@ -4,11 +4,13 @@ import {
   HitEventPayload,
   LobbyState,
   LobbySummary,
+  PlaneId,
   PlayerInput
 } from './types.js';
 
 export interface CreateLobbyPayload {
   username: string;
+  lobbyName?: string;
   isPrivate: boolean;
   password?: string;
 }
@@ -17,6 +19,10 @@ export interface JoinLobbyPayload {
   lobbyId: string;
   username: string;
   password?: string;
+}
+
+export interface SelectPlanePayload {
+  planeId: PlaneId;
 }
 
 export interface ToggleReadyPayload {
@@ -31,7 +37,9 @@ export interface ErrorPayload {
 export interface ClientToServerEvents {
   'create-lobby': (payload: CreateLobbyPayload) => void;
   'join-lobby': (payload: JoinLobbyPayload) => void;
+  'leave-lobby': () => void;
   'get-lobbies': () => void;
+  'select-plane': (payload: SelectPlanePayload) => void;
   'toggle-ready': (payload: ToggleReadyPayload) => void;
   'input-update': (payload: PlayerInput) => void;
 }
@@ -39,6 +47,7 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   'lobby-state-update': (state: LobbyState) => void;
   'lobbies-list': (lobbies: LobbySummary[]) => void;
+  'lobby-left': () => void;
   'game-started': (payload: { lobbyId: string }) => void;
   'game-tick': (payload: GameStateTick) => void;
   'player-hit': (payload: HitEventPayload) => void;
