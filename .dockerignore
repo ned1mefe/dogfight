@@ -1,0 +1,9 @@
+1node_modules
+packages/*/node_modules
+dist
+packages/*/dist
+.git
+.gitignore
+.DS_Store
+agent
+docs
