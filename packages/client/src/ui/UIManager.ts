@@ -121,7 +121,7 @@ export class UIManager {
 
     this.container.className = 'absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-6 select-none';
 
-    // Render persistent Top Bar (connection indicator & player call-sign)
+    // Render persistent Top Bar (connection indicator & player nickname)
     const topBar = this.renderTopBar();
     this.container.appendChild(topBar);
 
@@ -192,7 +192,7 @@ export class UIManager {
     const rightGroup = document.createElement('div');
     rightGroup.className = 'flex items-center space-x-3 text-xs';
 
-    // Pilot call-sign tag (only display when actively set)
+    // Pilot nickname tag (only display when actively set)
     if (this.state.username && this.state.username.trim().length > 0) {
       const pilotTag = document.createElement('div');
       pilotTag.className = 'hidden sm:flex items-center space-x-1.5 px-3 py-1 bg-slate-800/90 border border-slate-700 rounded-lg text-slate-300 font-mono';
@@ -405,7 +405,7 @@ export class UIManager {
     submitBtn.onclick = () => {
       const username = nickInput.value.trim();
       if (username.length < MIN_USERNAME_LENGTH || username.length > MAX_USERNAME_LENGTH) {
-        toast.show(`Call-sign must be ${MIN_USERNAME_LENGTH}-${MAX_USERNAME_LENGTH} characters`, 'error');
+        toast.show(`Nickname must be ${MIN_USERNAME_LENGTH}-${MAX_USERNAME_LENGTH} characters`, 'error');
         return;
       }
       this.setUsername(username);
@@ -576,7 +576,7 @@ export class UIManager {
         ${privBadgeHtml}
       </div>
       <h2 class="text-xl font-bold text-white" style="font-family: 'Press Start 2P', monospace;">JOIN ARENA</h2>
-      <p class="text-slate-400 text-xs">${lobbyName ? lobbyName + ' — ' : ''}${isPrivate === true ? 'Enter password to scramble your aircraft' : 'Enter your call-sign to scramble your aircraft'}</p>
+      <p class="text-slate-400 text-xs">${lobbyName ? lobbyName + ' — ' : ''}${isPrivate === true ? 'Enter password to scramble your aircraft' : 'Enter your nickname to scramble your aircraft'}</p>
     `;
     card.appendChild(header);
 
@@ -586,7 +586,7 @@ export class UIManager {
     // Nickname Input
     const nickGroup = document.createElement('div');
     nickGroup.className = 'space-y-1';
-    nickGroup.innerHTML = `<label class="block text-xs font-mono font-medium text-slate-300">PILOT CALL-SIGN</label>`;
+    nickGroup.innerHTML = `<label class="block text-xs font-mono font-medium text-slate-300">PILOT NICKNAME</label>`;
     const nickInput = document.createElement('input');
     nickInput.type = 'text';
     nickInput.maxLength = MAX_USERNAME_LENGTH;
@@ -626,7 +626,7 @@ export class UIManager {
     joinBtn.onclick = () => {
       const username = nickInput.value.trim();
       if (username.length < MIN_USERNAME_LENGTH || username.length > MAX_USERNAME_LENGTH) {
-        toast.show(`Call-sign must be ${MIN_USERNAME_LENGTH}-${MAX_USERNAME_LENGTH} characters`, 'error');
+        toast.show(`Nickname must be ${MIN_USERNAME_LENGTH}-${MAX_USERNAME_LENGTH} characters`, 'error');
         return;
       }
       this.setUsername(username);

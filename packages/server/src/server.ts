@@ -10,6 +10,7 @@ import {
   TICK_RATE
 } from '@dogfight/shared';
 import { LobbyManager } from './lobby/LobbyManager.js';
+import { GameManager } from './game/GameManager.js';
 import { registerLobbyHandlers } from './socket/lobbyHandlers.js';
 
 export interface DogfightServerInstance {
@@ -17,6 +18,7 @@ export interface DogfightServerInstance {
   server: http.Server;
   io: Server<ClientToServerEvents, ServerToClientEvents>;
   lobbyManager: LobbyManager;
+  gameManager: GameManager;
 }
 
 export function createDogfightServer(): DogfightServerInstance {
@@ -25,6 +27,7 @@ export function createDogfightServer(): DogfightServerInstance {
   app.use(express.json());
 
   const lobbyManager = new LobbyManager();
+  const gameManager = new GameManager();
 
   app.get('/health', (_req, res) => {
     res.json({
@@ -33,6 +36,7 @@ export function createDogfightServer(): DogfightServerInstance {
       arena: { width: ARENA_WIDTH, height: ARENA_HEIGHT },
       tickRate: TICK_RATE,
       activeLobbies: lobbyManager.getActiveLobbiesCount(),
+      activeGames: gameManager.getActiveGamesCount(),
       uptime: process.uptime()
     });
   });
@@ -47,13 +51,14 @@ export function createDogfightServer(): DogfightServerInstance {
   });
 
   io.on('connection', (socket) => {
-    registerLobbyHandlers(io, socket, lobbyManager);
+    registerLobbyHandlers(io, socket, lobbyManager, gameManager);
   });
 
   return {
     app,
     server,
     io,
-    lobbyManager
+    lobbyManager,
+    gameManager
   };
 }

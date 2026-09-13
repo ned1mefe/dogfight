@@ -14,6 +14,8 @@
     "dev:client": "npm run dev --workspace=@dogfight/client",
     "dev": "npm run build:shared && concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "test:lobby": "npm run test:lobby --workspace=@dogfight/server",
+    "test:game": "npm run test:game --workspace=@dogfight/server",
+    "test": "npm run test --workspace=@dogfight/server",
     "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
   },
   "devDependencies": {

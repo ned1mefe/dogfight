@@ -5,9 +5,11 @@ import {
   CreateLobbyPayload,
   JoinLobbyPayload,
   SelectPlanePayload,
-  ToggleReadyPayload
+  ToggleReadyPayload,
+  PlayerInput
 } from '@dogfight/shared';
 import { LobbyManager } from '../lobby/LobbyManager.js';
+import { GameManager } from '../game/GameManager.js';
 
 export function getLobbyRoomName(lobbyId: string): string {
   return `lobby:${lobbyId.trim().toUpperCase()}`;
@@ -23,7 +25,8 @@ export function broadcastPublicLobbies(
 export function registerLobbyHandlers(
   io: Server<ClientToServerEvents, ServerToClientEvents>,
   socket: Socket<ClientToServerEvents, ServerToClientEvents>,
-  lobbyManager: LobbyManager
+  lobbyManager: LobbyManager,
+  gameManager: GameManager
 ): void {
   // 1. Create Lobby
   socket.on('create-lobby', async (payload: CreateLobbyPayload) => {
@@ -74,6 +77,7 @@ export function registerLobbyHandlers(
       const roomName = getLobbyRoomName(currentLobby.id);
       await socket.leave(roomName);
 
+      gameManager.handlePlayerLeave(socket.id);
       const result = lobbyManager.leaveLobby(socket.id);
       socket.emit('lobby-left');
 
@@ -114,6 +118,7 @@ export function registerLobbyHandlers(
       // If all players ready (min 2), auto-start game
       if (canStart) {
         lobbyManager.startGame(lobby.id);
+        const gameRoom = gameManager.startGame(lobby, io);
         io.to(roomName).emit('lobby-state-update', lobby.toState());
         io.to(roomName).emit('game-started', { lobbyId: lobby.id });
 
@@ -127,14 +132,26 @@ export function registerLobbyHandlers(
     }
   });
 
-  // 6. Get Public Lobbies List
+  // 6. Input Updates (In-Game Controls)
+  socket.on('input-update', (payload: PlayerInput) => {
+    try {
+      if (payload && typeof payload === 'object') {
+        gameManager.handleInput(socket.id, payload);
+      }
+    } catch {
+      // Ignore invalid input updates
+    }
+  });
+
+  // 7. Get Public Lobbies List
   socket.on('get-lobbies', () => {
     socket.emit('lobbies-list', lobbyManager.getPublicLobbies());
   });
 
-  // 7. Socket Disconnect
+  // 8. Socket Disconnect
   socket.on('disconnecting', () => {
     try {
+      gameManager.handlePlayerLeave(socket.id);
       const currentLobby = lobbyManager.getLobbyBySocketId(socket.id);
       if (currentLobby) {
         const roomName = getLobbyRoomName(currentLobby.id);

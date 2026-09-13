@@ -10,9 +10,9 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 | :--- | :--- | :--- |
 | **Phase 1** | Setup & Scaffolding | **COMPLETED** (`100%`) |
 | **Phase 2** | Lobby Backend | **COMPLETED** (`100%`) |
-| **Phase 3** | Lobby UI & Frontend Integration | **READY TO START** (`0%`) |
-| **Phase 4** | Server-Authoritative Game Engine & Physics | **PENDING** (`0%`) |
-| **Phase 5** | Client Rendering & Phaser Presentation | **PENDING** (`0%`) |
+| **Phase 3** | Lobby UI & Frontend Integration | **COMPLETED** (`100%`) |
+| **Phase 4** | Server-Authoritative Game Engine & Physics | **COMPLETED** (`100%`) |
+| **Phase 5** | Client Rendering & Phaser Presentation | **READY TO START** (`0%`) |
 
 ---
 
@@ -133,42 +133,44 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 
 ## Phase 4: Server-Authoritative Game Engine & Physics
 > **Goal:** Implement the 30 Hz server simulation: plane kinematics, screen wrapping, bullet generation, and collision detection math.
-> **Status:** [ ] **PENDING**
+> **Status:** [x] **COMPLETED**
 
-- [ ] **4.1 Game Room Loop Architecture**
-  - [ ] Create `GameRoom` class running at 30 Hz tick interval (~33.3ms) via high-resolution timer.
-  - [ ] Track simulation state: tick number, active planes (including their fixed `planeId`), active bullets, respawn queues.
-- [ ] **4.2 Plane Kinematics & Input Processing**
-  - [ ] Buffer and apply client `input-update` ({ left, right, fire }).
-  - [ ] Apply constant forward velocity:  
+- [x] **4.1 Game Room Loop Architecture**
+  - [x] Create `GameRoom` class running at 30 Hz tick interval (~33.3ms) via high-resolution timer.
+  - [x] Track simulation state: tick number, active planes (including their fixed `planeId`), active bullets, respawn queues.
+- [x] **4.2 Plane Kinematics & Input Processing**
+  - [x] Buffer and apply client `input-update` ({ left, right, fire }).
+  - [x] Apply constant forward velocity:  
     `vx = cos(rotation) * PLANE_SPEED`, `vy = sin(rotation) * PLANE_SPEED`.
-  - [ ] Apply angular rotation based on left/right input:  
+  - [x] Apply angular rotation based on left/right input:  
     `rotation += angularVelocity * delta`.
-- [ ] **4.3 Asteroids-style Screen Wrapping**
-  - [ ] Screen boundary logic: when plane center exceeds `ARENA_WIDTH` or `ARENA_HEIGHT`, wrap seamlessly:
+- [x] **4.3 Asteroids-style Screen Wrapping**
+  - [x] Screen boundary logic: when plane center exceeds `ARENA_WIDTH` or `ARENA_HEIGHT`, wrap seamlessly:
     - `if (x < 0) x = ARENA_WIDTH; else if (x > ARENA_WIDTH) x = 0;`
     - `if (y < 0) y = ARENA_HEIGHT; else if (y > ARENA_HEIGHT) y = 0;`
-- [ ] **4.4 Weapon & Bullet Simulation**
-  - [ ] Process `fire` input with 200ms rate-limit cooldown per player.
-  - [ ] Bullet spawn at plane nose heading:  
+- [x] **4.4 Weapon & Bullet Simulation**
+  - [x] Process `fire` input with 200ms rate-limit cooldown per player.
+  - [x] Bullet spawn at plane nose heading:  
     `bx = x + cos(rotation) * offset`, `by = y + sin(rotation) * offset`.
-  - [ ] Bullet velocity: `PLANE_SPEED + BULLET_SPEED` in forward heading direction.
-  - [ ] Bullet despawn: bullets do NOT wrap; destroyed immediately when leaving arena bounds.
-- [ ] **4.5 Collision Detection Math**
-  - [ ] Lightweight 2D circle-circle collision detection:
+  - [x] Bullet velocity: `PLANE_SPEED + BULLET_SPEED` in forward heading direction.
+  - [x] Bullet despawn: bullets do NOT wrap; destroyed immediately when leaving arena bounds.
+- [x] **4.5 Collision Detection Math**
+  - [x] Lightweight 2D circle-circle collision detection:
     - Distance squared check between bullets and enemy planes: `distSq < (PLANE_RADIUS + BULLET_RADIUS)^2`.
     - Ignore self-damage (bullets cannot hit owner).
-  - [ ] Optional plane-to-plane mid-air collision handling.
-- [ ] **4.6 Health, Scoring & Respawn System**
-  - [ ] On bullet hit: mark victim `isAlive = false`, increment shooter `score += 1`.
-  - [ ] Broadcast `player-hit` and `player-destroyed` events with coordinates and updated scores.
-  - [ ] Queue 5-second respawn timer.
-  - [ ] Respawn logic: pick random arena edge, facing inwards, instantly re-entering with forward momentum.
-  - [ ] Preserves the player's unique `planeId` across all respawns.
-- [ ] **4.7 Game State Broadcast**
-  - [ ] On each tick (33ms), construct `GameStateTick` and broadcast `game-tick` to room sockets.
-- [ ] **4.8 Verification**
-  - [ ] Headless simulation verification validating boundary wrapping, collision calculations, and scoring.
+  - [x] Mid-air plane collision handling with `PLANE_RAMMING_DESTRUCTION = true` default.
+- [x] **4.6 Health, Scoring & Respawn System**
+  - [x] On bullet hit: mark victim `isAlive = false`, increment shooter `score += 1`.
+  - [x] Broadcast `player-hit` and `player-destroyed` events with coordinates and updated scores.
+  - [x] Queue 5-second respawn timer.
+  - [x] Respawn logic: pick random arena edge, facing inwards, instantly re-entering with forward momentum.
+  - [x] Preserves the player's unique `planeId` across all respawns.
+- [x] **4.7 Game State Broadcast**
+  - [x] On each tick (33ms), construct `GameStateTick` and broadcast `game-tick` to room sockets.
+  - [x] Multi-room coordinator `GameManager` integrated with `lobbyHandlers.ts` and `server.ts`.
+- [x] **4.8 Verification**
+  - [x] Unit test suite `test/game-physics.test.ts` verifying kinematics, wrapping, collisions, and spawns.
+  - [x] Full integration simulation test suite `test/game-simulation.test.ts` verifying end-to-end socket events, steering, bullets, damage, scoring, respawns, ramming, and room lifecycle.
 
 ---
 

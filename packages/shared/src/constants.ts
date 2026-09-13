@@ -39,4 +39,5 @@ export const DEFAULT_LOBBY_NAME = 'Dogfight Arena';
 
 export const PLANE_COLLISION_RADIUS = 16;
 export const BULLET_COLLISION_RADIUS = 4;
+export const PLANE_RAMMING_DESTRUCTION = true; // Mutual destruction on plane-to-plane collision
 
