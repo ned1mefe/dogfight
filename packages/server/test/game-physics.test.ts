@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import {
   ARENA_WIDTH,
   ARENA_HEIGHT,
+  PLANE_BASE_SPEED,
+  PLANE_MAX_SPEED,
+  PLANE_ACCELERATION,
+  PLANE_TURN_DECELERATION,
   PLANE_SPEED,
   PLANE_ROTATION_SPEED,
   BULLET_SPEED,
@@ -69,10 +73,12 @@ console.log('🧪 Running GamePhysics Unit Tests...\n');
 // 4. Kinematics Update
 {
   const dt = 1 / 30; // 1 frame
-  // Moving straight east (rotation = 0)
+  // Moving straight east (rotation = 0) accelerates from base speed
   const straight = updatePlaneKinematics(100, 100, 0, false, false, dt);
   assert.equal(straight.rotation, 0);
-  assert.ok(Math.abs(straight.x - (100 + PLANE_SPEED * dt)) < 1e-4);
+  const expectedSpeed = Math.min(PLANE_MAX_SPEED, PLANE_BASE_SPEED + PLANE_ACCELERATION * dt);
+  assert.ok(Math.abs(straight.speed - expectedSpeed) < 1e-4);
+  assert.ok(Math.abs(straight.x - (100 + expectedSpeed * dt)) < 1e-4);
   assert.ok(Math.abs(straight.y - 100) < 1e-4);
 
   // Turning left (counter-clockwise, decreasing angle)
@@ -90,6 +96,52 @@ console.log('🧪 Running GamePhysics Unit Tests...\n');
   assert.equal(canceled.rotation, 0);
 
   console.log('✓ updatePlaneKinematics accurately applies angular steering and forward velocity');
+}
+
+// 4b. Dynamic Acceleration and Deceleration Mechanics
+{
+  const dt = 1 / 30;
+  let state = { x: 100, y: 100, rotation: 0, vx: PLANE_BASE_SPEED, vy: 0, speed: PLANE_BASE_SPEED };
+
+  // 1. Sustained linear flight should increase speed up to PLANE_MAX_SPEED
+  for (let i = 0; i < 90; i++) {
+    state = updatePlaneKinematics(state.x, state.y, state.rotation, false, false, dt, state.vx, state.vy);
+  }
+  assert.equal(state.speed, PLANE_MAX_SPEED, 'Speed should reach PLANE_MAX_SPEED after sustained straight flight');
+  assert.ok(state.speed <= PLANE_MAX_SPEED, 'Speed should never exceed PLANE_MAX_SPEED');
+
+  // 2. Turning/Rotating should bleed speed back down to PLANE_BASE_SPEED
+  for (let i = 0; i < 60; i++) {
+    state = updatePlaneKinematics(state.x, state.y, state.rotation, true, false, dt, state.vx, state.vy);
+  }
+  assert.equal(state.speed, PLANE_BASE_SPEED, 'Speed should bleed back down to PLANE_BASE_SPEED when turning');
+  assert.ok(state.speed >= PLANE_BASE_SPEED, 'Speed should never drop below PLANE_BASE_SPEED');
+
+  console.log('✓ linear acceleration and turn deceleration correctly scale and clamp player speed');
+}
+
+// 4c. Momentum & Directional Swing
+{
+  const dt = 1 / 30;
+  // Plane flying eastward with full momentum (rotation = 0, vx = PLANE_BASE_SPEED, vy = 0)
+  const step = updatePlaneKinematics(100, 100, 0, true, false, dt, PLANE_BASE_SPEED, 0);
+
+  assert.ok(step.rotation < 0, 'Nose rotated counter-clockwise');
+
+  // Momentum swing: velocity vector lags behind instantaneous nose heading
+  const instantaneousVx = Math.cos(step.rotation) * step.speed;
+  const instantaneousVy = Math.sin(step.rotation) * step.speed;
+
+  assert.ok(
+    step.vx > instantaneousVx,
+    `vx (${step.vx}) should maintain forward momentum relative to heading (${instantaneousVx})`
+  );
+  assert.ok(
+    step.vy > instantaneousVy,
+    `vy (${step.vy}) should lag behind lateral turn angle (${instantaneousVy})`
+  );
+
+  console.log('✓ updatePlaneKinematics smoothly swings with momentum when changing direction');
 }
 
 // 5. Bullet Spawning

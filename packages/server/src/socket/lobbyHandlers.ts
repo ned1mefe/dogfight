@@ -120,7 +120,7 @@ export function registerLobbyHandlers(
         lobbyManager.startGame(lobby.id);
         const gameRoom = gameManager.startGame(lobby, io);
         io.to(roomName).emit('lobby-state-update', lobby.toState());
-        io.to(roomName).emit('game-started', { lobbyId: lobby.id });
+        io.to(roomName).emit('game-started', { lobbyId: lobby.id, mapId: lobby.mapId });
 
         // Lobby is no longer joinable in browser
         broadcastPublicLobbies(io, lobbyManager);

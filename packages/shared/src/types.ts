@@ -18,6 +18,9 @@ export interface PlayerState {
   x: number;
   y: number;
   rotation: number; // in radians
+  vx?: number;
+  vy?: number;
+  speed?: number;
   isAlive: boolean;
   respawnTimer: number; // seconds remaining, 0 when alive
   score: number;
@@ -49,6 +52,7 @@ export interface LobbyState {
   players: PlayerState[];
   availablePlanes: PlaneId[];
   isGameStarted: boolean;
+  mapId?: number;
 }
 
 export interface GameStateTick {

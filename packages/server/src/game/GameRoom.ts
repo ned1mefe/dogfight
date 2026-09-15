@@ -4,6 +4,8 @@ import {
   ARENA_HEIGHT,
   TICK_RATE,
   TICK_INTERVAL_MS,
+  PLANE_BASE_SPEED,
+  PLANE_SPEED,
   FIRE_COOLDOWN_MS,
   RESPAWN_DELAY_SEC,
   PLANE_COLLISION_RADIUS,
@@ -27,6 +29,9 @@ import {
 export interface InternalPlayer extends PlayerState {
   input: PlayerInput;
   lastFiredTime: number;
+  vx: number;
+  vy: number;
+  speed: number;
 }
 
 export class GameRoom {
@@ -52,8 +57,14 @@ export class GameRoom {
     this.io = io;
 
     for (const player of initialPlayers) {
+      const speed = player.speed ?? PLANE_BASE_SPEED;
+      const vx = player.vx ?? Math.cos(player.rotation) * speed;
+      const vy = player.vy ?? Math.sin(player.rotation) * speed;
       this.players.set(player.id, {
         ...player,
+        vx,
+        vy,
+        speed,
         input: { left: false, right: false, fire: false },
         lastFiredTime: 0
       });
@@ -141,6 +152,9 @@ export class GameRoom {
           player.x = spawn.x;
           player.y = spawn.y;
           player.rotation = spawn.rotation;
+          player.speed = PLANE_BASE_SPEED;
+          player.vx = Math.cos(spawn.rotation) * PLANE_BASE_SPEED;
+          player.vy = Math.sin(spawn.rotation) * PLANE_BASE_SPEED;
           player.isAlive = true;
         }
       }
@@ -155,12 +169,17 @@ export class GameRoom {
           player.rotation,
           player.input.left,
           player.input.right,
-          dt
+          dt,
+          player.vx,
+          player.vy
         );
 
         player.x = next.x;
         player.y = next.y;
         player.rotation = next.rotation;
+        player.vx = next.vx;
+        player.vy = next.vy;
+        player.speed = next.speed;
       }
     }
 
@@ -170,7 +189,15 @@ export class GameRoom {
         if (now - player.lastFiredTime >= FIRE_COOLDOWN_MS) {
           player.lastFiredTime = now;
 
-          const spawn = calculateBulletSpawn(player.x, player.y, player.rotation);
+          const spawn = calculateBulletSpawn(
+            player.x,
+            player.y,
+            player.rotation,
+            undefined,
+            undefined,
+            player.vx,
+            player.vy
+          );
           const bulletId = `b_${player.id.slice(0, 4)}_${now}_${Math.random().toString(36).slice(2, 6)}`;
 
           const bullet: BulletState = {
@@ -323,6 +350,9 @@ export class GameRoom {
       x: player.x,
       y: player.y,
       rotation: player.rotation,
+      vx: player.vx,
+      vy: player.vy,
+      speed: Math.round(player.speed),
       isAlive: player.isAlive,
       respawnTimer: Math.round(player.respawnTimer * 10) / 10,
       score: player.score,

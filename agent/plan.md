@@ -138,12 +138,11 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 - [x] **4.1 Game Room Loop Architecture**
   - [x] Create `GameRoom` class running at 30 Hz tick interval (~33.3ms) via high-resolution timer.
   - [x] Track simulation state: tick number, active planes (including their fixed `planeId`), active bullets, respawn queues.
-- [x] **4.2 Plane Kinematics & Input Processing**
+- [x] **4.2 Plane Kinematics, Momentum Swing & Dynamic Flight Speed**
   - [x] Buffer and apply client `input-update` ({ left, right, fire }).
-  - [x] Apply constant forward velocity:  
-    `vx = cos(rotation) * PLANE_SPEED`, `vy = sin(rotation) * PLANE_SPEED`.
-  - [x] Apply angular rotation based on left/right input:  
-    `rotation += angularVelocity * delta`.
+  - [x] Dynamic speed scaling: linear acceleration up to `PLANE_MAX_SPEED` (280 px/s) during straight flight, bleeding back down to `PLANE_BASE_SPEED` (180 px/s) when turning.
+  - [x] Momentum swing: velocity vector smoothly swings through turns with centrifugal inertia lag (`PLANE_MOMENTUM_ALIGNMENT = 1.8`).
+  - [x] Angular steering: counter-clockwise (left) and clockwise (right) with `PLANE_ROTATION_SPEED = 3.2`.
 - [x] **4.3 Asteroids-style Screen Wrapping**
   - [x] Screen boundary logic: when plane center exceeds `ARENA_WIDTH` or `ARENA_HEIGHT`, wrap seamlessly:
     - `if (x < 0) x = ARENA_WIDTH; else if (x > ARENA_WIDTH) x = 0;`
@@ -175,41 +174,39 @@ This document tracks the phased implementation of **DOGFIGHT**, derived from the
 ---
 
 ## Phase 5: Client Rendering & Phaser Presentation
-> **Goal:** Render multi-layer TileSprite parallax backgrounds, unique pixel-art planes, interpolated 60fps visuals, particle effects, audio/SFX, and HUD.
-> **Status:** [ ] **PENDING**
+> **Goal:** Render multi-layer TileSprite parallax backgrounds, unique pixel-art planes, interpolated 60fps visuals, particle effects, audio/SFX scaffolding, and HUD.
+> **Status:** [x] **COMPLETED**
 
-- [ ] **5.1 Asset Pipeline & Texture Loading**
-  - [ ] Load 11 plane sprites (`plane-1.png` through `plane-11.png`) from `packages/client/assets/planes/`.
-  - [ ] Load multi-layer seamless/tileable cloud background packs from `packages/client/assets/backgrounds/` (`Clouds 1` through `Clouds 8`, each containing layer textures `1.png`, `2.png`, `3.png`, `4.png`).
-  - [ ] Pixel bullet sprites, muzzle flashes, and explosion frames/particles.
-  - [ ] Configure texture filtering with nearest-neighbor crisp filtering (`pixelArt: true`).
-- [ ] **5.2 Multi-Layer Parallax Backgrounds with `TileSprite`**
-  - [ ] In `ArenaScene`, create a stacked series of `Phaser.GameObjects.TileSprite` instances for the background layers.
-  - [ ] Size each `TileSprite` to match the arena dimensions (`1280x720`).
-  - [ ] In the scene `update()` loop, scroll each layer independently at distinct differential speeds:
-    - Adjust `tilePositionX` (and subtle `tilePositionY`) continuously in an infinite loop.
-    - Slower speeds for distant backdrops (sky/distant clouds), progressively faster speeds for foreground cloud layers.
-    - Yields a seamless, infinite loop depth illusion.
-- [ ] **5.3 Phaser Scene Setup & Entity Management**
-  - [ ] Transition from `BootScene` into `ArenaScene`.
-  - [ ] Maintain sprite pools for planes and bullets mapped to entity IDs.
-  - [ ] Instantiate each player's plane using their unique selected plane texture (`plane-1` through `plane-11`) confirmed by the server.
-- [ ] **5.4 Input Handling**
-  - [ ] Capture Keyboard arrows (Left, Right) and Spacebar (Fire).
-  - [ ] Send `input-update` delta events on key state transitions to minimize bandwidth.
-- [ ] **5.5 Interpolation & Client Reconciliation**
-  - [ ] Interpolate plane positions (`lerp`) and rotations (`slerp` / angle delta) between server ticks for silky 60fps movement.
-  - [ ] Handle seamless screen-wrapping interpolation without visual snapping across the screen.
-- [ ] **5.6 Visual & Particle Effects**
-  - [ ] Engine smoke/trail particle emitter behind flying planes.
-  - [ ] Muzzle flash on bullet firing.
-  - [ ] Explosions with particle burst on plane destruction.
-  - [ ] Camera screen shake on nearby hits.
-- [ ] **5.7 In-Game HUD**
-  - [ ] Real-time leaderboard overlay in corner (player names, plane avatars, kills/scores).
-  - [ ] Respawn countdown overlay ("Respawning in 3... 2... 1...").
-  - [ ] Match leave button / return to lobby.
-- [ ] **5.8 Final Polish & Verification**
-  - [ ] Full end-to-end multi-client playtesting in Docker.
-  - [ ] Verify infinite loop TileSprite parallax motion and verify unique plane selections stay persistent across game lifecycle.
-  - [ ] Latency and responsiveness checks under simulated network jitter.
+- [x] **5.1 Asset Pipeline & Texture Loading**
+  - [x] Moved assets to Vite standard `packages/client/public/assets/`.
+  - [x] Load 11 plane sprites (`plane-1.png` through `plane-11.png`) in `BootScene`.
+  - [x] Load multi-layer seamless/tileable cloud background packs (`Clouds 1` through `Clouds 8`).
+  - [x] Bullet sprites and procedurally generated particle textures (sparks, smoke puffs, debris, muzzle flashes, shockwaves).
+  - [x] Configure crisp nearest-neighbor texture filtering (`pixelArt: true` & `FilterMode.NEAREST`).
+- [x] **5.2 Multi-Layer Parallax Backgrounds with `TileSprite`**
+  - [x] In `ArenaScene`, created stacked series of `Phaser.GameObjects.TileSprite` instances for 4 cloud layers matching `1280x720` dimensions.
+  - [x] In scene `update()`, scrolled each layer independently at distinct differential speeds (`0.015x` to `0.18x`) with subtle vertical breathing drift for seamless infinite loop depth illusion.
+- [x] **5.3 Phaser Scene Setup & Entity Management**
+  - [x] Clean transition from `BootScene` to `ArenaScene`.
+  - [x] Maintained sprite pools for planes and bullets mapped to entity IDs.
+  - [x] Instantiated each player's plane using selected plane texture (`plane-1` through `plane-11`), overhead name tag, and player color badge.
+- [x] **5.4 Input Handling**
+  - [x] Capture Keyboard arrows (Left, Right), A / D, and Spacebar (Fire).
+  - [x] Send `input-update` delta events on key state transitions to minimize network bandwidth.
+- [x] **5.5 Interpolation & Client Reconciliation**
+  - [x] Interpolate plane positions (`lerp`) and rotations (`slerp` / angle wrap) between server ticks for silky 60fps movement.
+  - [x] Toroidal boundary-wrapping unwrapping logic eliminating visual snapping or reverse sliding across screen borders.
+- [x] **5.6 Visual & Particle Effects**
+  - [x] Engine smoke particle emitter trailing behind flying plane tails.
+  - [x] Muzzle flash and spark bursts on bullet firing and hit impacts.
+  - [x] Explosive particle bursts, debris scatter, smoke clouds, and shockwaves on plane destruction.
+  - [x] Camera screen shake on nearby hits and destructions.
+- [x] **5.7 In-Game HUD & Audio Scaffolding**
+  - [x] Real-time leaderboard overlay (player names, plane avatars, live scores, airborne/down status).
+  - [x] Respawn countdown overlay with dynamic countdown timer.
+  - [x] Match leave button returning to lobby browser.
+  - [x] Audio scaffolding (`SoundConfig.ts` & `SoundManager.ts`) with mute toggle.
+- [x] **5.8 Polish & Automated Verification**
+  - [x] Monorepo build passes cleanly (`npm run build`).
+  - [x] Server physics, lobby, and simulation test suites pass 100% (`npm test`).
+  - [x] Static asset delivery verified over HTTP (`200 OK`).

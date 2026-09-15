@@ -1,8 +1,13 @@
 import {
   ARENA_WIDTH,
   ARENA_HEIGHT,
+  PLANE_BASE_SPEED,
+  PLANE_MAX_SPEED,
+  PLANE_ACCELERATION,
+  PLANE_TURN_DECELERATION,
   PLANE_SPEED,
   PLANE_ROTATION_SPEED,
+  PLANE_MOMENTUM_ALIGNMENT,
   BULLET_SPEED,
   PLANE_COLLISION_RADIUS
 } from '@dogfight/shared';
@@ -58,7 +63,10 @@ export function isOutOfBounds(
 }
 
 /**
- * Updates a plane's rotation and forward position given steering inputs and delta time.
+ * Updates a plane's rotation and forward position given steering inputs, delta time.
+ * Accelerates linearly during straight movement up to PLANE_MAX_SPEED,
+ * bleeds speed back down to PLANE_BASE_SPEED when steering/turning,
+ * and preserves momentum when turning (causing the plane to swing outwards into turns).
  */
 export function updatePlaneKinematics(
   x: number,
@@ -66,9 +74,12 @@ export function updatePlaneKinematics(
   rotation: number,
   left: boolean,
   right: boolean,
-  dt: number
-): { x: number; y: number; rotation: number } {
+  dt: number,
+  vx?: number,
+  vy?: number
+): { x: number; y: number; rotation: number; vx: number; vy: number; speed: number } {
   let nextRotation = rotation;
+  const isRotating = (left && !right) || (right && !left);
 
   // Steering: left turns counter-clockwise (-angle), right turns clockwise (+angle)
   if (left && !right) {
@@ -78,19 +89,53 @@ export function updatePlaneKinematics(
   }
   nextRotation = normalizeAngle(nextRotation);
 
-  // Constant forward velocity
-  const vx = Math.cos(nextRotation) * PLANE_SPEED;
-  const vy = Math.sin(nextRotation) * PLANE_SPEED;
+  // Current velocity vector (fallback to initial heading velocity if uninitialized)
+  const curVx = vx ?? Math.cos(rotation) * PLANE_BASE_SPEED;
+  const curVy = vy ?? Math.sin(rotation) * PLANE_BASE_SPEED;
+  const curSpeed = Math.hypot(curVx, curVy) || PLANE_BASE_SPEED;
 
-  const nextX = x + vx * dt;
-  const nextY = y + vy * dt;
+  // Dynamic speed adjustment:
+  // - Linear flight: accelerate linearly up to PLANE_MAX_SPEED
+  // - Turning/Rotating: bleed excess speed back down to PLANE_BASE_SPEED
+  let nextSpeed: number;
+  if (isRotating) {
+    nextSpeed = Math.max(PLANE_BASE_SPEED, curSpeed - PLANE_TURN_DECELERATION * dt);
+  } else {
+    nextSpeed = Math.min(
+      PLANE_MAX_SPEED,
+      Math.max(PLANE_BASE_SPEED, curSpeed) + PLANE_ACCELERATION * dt
+    );
+  }
+
+  // Target forward velocity vector along the newly steered nose heading
+  const targetVx = Math.cos(nextRotation) * nextSpeed;
+  const targetVy = Math.sin(nextRotation) * nextSpeed;
+
+  // Momentum swing: exponential decay aligning velocity vector with new heading
+  // During turns, existing momentum carries the plane forward along its previous trajectory
+  const alignmentFactor = 1 - Math.exp(-PLANE_MOMENTUM_ALIGNMENT * dt);
+  let nextVx = curVx + (targetVx - curVx) * alignmentFactor;
+  let nextVy = curVy + (targetVy - curVy) * alignmentFactor;
+
+  // Enforce velocity vector magnitude to match updated scalar flight speed
+  const speedMag = Math.hypot(nextVx, nextVy);
+  if (speedMag > 0) {
+    nextVx = (nextVx / speedMag) * nextSpeed;
+    nextVy = (nextVy / speedMag) * nextSpeed;
+  }
+
+  const nextX = x + nextVx * dt;
+  const nextY = y + nextVy * dt;
 
   const wrapped = wrapPosition(nextX, nextY);
 
   return {
     x: wrapped.x,
     y: wrapped.y,
-    rotation: nextRotation
+    rotation: nextRotation,
+    vx: nextVx,
+    vy: nextVy,
+    speed: nextSpeed
   };
 }
 
@@ -103,14 +148,27 @@ export function calculateBulletSpawn(
   planeY: number,
   rotation: number,
   offset = PLANE_COLLISION_RADIUS + 4,
-  speed = PLANE_SPEED + BULLET_SPEED
+  bulletMuzzleSpeed = BULLET_SPEED,
+  planeVx?: number,
+  planeVy?: number
 ): { x: number; y: number; vx: number; vy: number } {
   const bx = planeX + Math.cos(rotation) * offset;
   const by = planeY + Math.sin(rotation) * offset;
-  const vx = Math.cos(rotation) * speed;
-  const vy = Math.sin(rotation) * speed;
 
-  return { x: bx, y: by, vx, vy };
+  // Forward muzzle velocity along nose heading
+  const muzzleVx = Math.cos(rotation) * bulletMuzzleSpeed;
+  const muzzleVy = Math.sin(rotation) * bulletMuzzleSpeed;
+
+  // Inherit aircraft forward carrier velocity
+  const carrierVx = planeVx ?? Math.cos(rotation) * PLANE_BASE_SPEED;
+  const carrierVy = planeVy ?? Math.sin(rotation) * PLANE_BASE_SPEED;
+
+  return {
+    x: bx,
+    y: by,
+    vx: muzzleVx + carrierVx,
+    vy: muzzleVy + carrierVy
+  };
 }
 
 /**

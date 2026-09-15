@@ -13,6 +13,7 @@ export interface CreateLobbyPayload {
   lobbyName?: string;
   isPrivate: boolean;
   password?: string;
+  mapId?: number;
 }
 
 export interface JoinLobbyPayload {
@@ -48,7 +49,7 @@ export interface ServerToClientEvents {
   'lobby-state-update': (state: LobbyState) => void;
   'lobbies-list': (lobbies: LobbySummary[]) => void;
   'lobby-left': () => void;
-  'game-started': (payload: { lobbyId: string }) => void;
+  'game-started': (payload: { lobbyId: string; mapId?: number }) => void;
   'game-tick': (payload: GameStateTick) => void;
   'player-hit': (payload: HitEventPayload) => void;
   'player-destroyed': (payload: DestroyedEventPayload) => void;

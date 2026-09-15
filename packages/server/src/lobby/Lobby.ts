@@ -58,6 +58,7 @@ export class Lobby {
   private readonly passwordHash: string | null = null;
   public isGameStarted = false;
   public hostSocketId: string | null = null;
+  public mapId: number = 1;
 
   private players: Map<string, PlayerState> = new Map();
   private availableColors: PlayerColor[] = [...PLAYER_COLORS];
@@ -68,10 +69,12 @@ export class Lobby {
     name?: string;
     isPrivate: boolean;
     password?: string;
+    mapId?: number;
   }) {
     this.id = options.id || generateRoomId();
     this.name = this.sanitizeLobbyName(options.name);
     this.isPrivate = options.isPrivate;
+    this.mapId = options.mapId && options.mapId >= 1 && options.mapId <= 8 ? options.mapId : 1;
 
     if (this.isPrivate) {
       if (!options.password || options.password.trim().length === 0) {
@@ -291,7 +294,8 @@ export class Lobby {
       isPrivate: this.isPrivate,
       players: Array.from(this.players.values()),
       availablePlanes: [...this.availablePlanes],
-      isGameStarted: this.isGameStarted
+      isGameStarted: this.isGameStarted,
+      mapId: this.mapId
     };
   }
 

@@ -9,10 +9,15 @@ export const TICK_INTERVAL_MS = Math.floor(1000 / TICK_RATE);
 export const MAX_PLAYERS_PER_LOBBY = 4;
 export const MIN_PLAYERS_TO_START = 2;
 
-export const PLANE_SPEED = 180; // pixels per second
+export const PLANE_BASE_SPEED = 150; // pixels per second (cruising speed)
+export const PLANE_MAX_SPEED = 250; // pixels per second (maximum speed achieved via straight flight)
+export const PLANE_ACCELERATION = 60; // px/s^2 linear flight acceleration rate
+export const PLANE_TURN_DECELERATION = 80; // px/s^2 rate at which turning bleeds speed back down to base
+export const PLANE_SPEED = PLANE_BASE_SPEED; // alias for backwards-compatibility
 export const PLANE_ROTATION_SPEED = 3.2; // radians per second
-export const FIRE_COOLDOWN_MS = 200; // ms between shots
-export const BULLET_SPEED = 480; // pixels per second
+export const PLANE_MOMENTUM_ALIGNMENT = 1.8; // rate (1/s) at which momentum vector realigns with heading (inertia / swing)
+export const FIRE_COOLDOWN_MS = 330; // ms between shots
+export const BULLET_SPEED = 520; // pixels per second
 export const RESPAWN_DELAY_SEC = 5; // seconds
 
 export const PLAYER_COLORS: readonly PlayerColor[] = ['red', 'blue', 'green', 'yellow'] as const;

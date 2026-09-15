@@ -1,31 +1,70 @@
 import './index.css';
 import Phaser from 'phaser';
-import { io, Socket } from 'socket.io-client';
 import {
   ARENA_WIDTH,
-  ARENA_HEIGHT,
-  ClientToServerEvents,
-  ServerToClientEvents
+  ARENA_HEIGHT
 } from '@dogfight/shared';
 
+import { socket } from './socket.js';
 import { UIManager } from './ui/UIManager.js';
 import { toast } from './ui/toast.js';
 import { parseLobbyHash } from './ui/router.js';
+import { BootScene } from './game/scenes/BootScene.js';
+import { ArenaScene } from './game/scenes/ArenaScene.js';
+import { InGameHUD } from './game/hud/InGameHUD.js';
 
-// Initialize Socket.io connection
-export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io({
-  autoConnect: true,
-  transports: ['websocket', 'polling']
-});
+// Re-export socket for backwards compatibility
+export { socket };
 
 // Initialize UI Manager
 export const uiManager = new UIManager('ui-overlay');
 uiManager.setSocket(socket);
 
+// Setup Phaser Game Config
+const config: Phaser.Types.Core.GameConfig = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: ARENA_WIDTH,
+  height: ARENA_HEIGHT,
+  pixelArt: true,
+  backgroundColor: '#020617',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  scene: [BootScene, ArenaScene]
+};
+
+export const game = new Phaser.Game(config);
+
+function getArenaScene(): ArenaScene | null {
+  return (game.scene.getScene('ArenaScene') as ArenaScene) || null;
+}
+
+// Initialize In-Game HUD
+export const inGameHUD = new InGameHUD('app', {
+  onLeaveMatch: () => {
+    socket.emit('leave-lobby');
+    const arena = getArenaScene();
+    if (arena) {
+      arena.setMatchActive(false);
+    }
+    inGameHUD.hide();
+    uiManager.clearLobby();
+    uiManager.setView('BROWSER');
+  }
+});
+
 // Socket Lifecycle & Event Wiring
 socket.on('connect', () => {
   console.log(`[Client] Connected to server: ${socket.id}`);
   uiManager.setSocketStatus(true, socket.id ?? null);
+  inGameHUD.setLocalPlayerId(socket.id ?? null);
+
+  const arena = getArenaScene();
+  if (arena) {
+    arena.setSocketId(socket.id ?? null);
+  }
 
   // Request open public lobbies
   socket.emit('get-lobbies');
@@ -40,6 +79,12 @@ socket.on('connect', () => {
 socket.on('disconnect', () => {
   console.log('[Client] Disconnected from server');
   uiManager.setSocketStatus(false, null);
+  inGameHUD.setLocalPlayerId(null);
+  const arena = getArenaScene();
+  if (arena) {
+    arena.setMatchActive(false);
+  }
+  inGameHUD.hide();
 });
 
 socket.on('connect_error', (err) => {
@@ -51,6 +96,10 @@ socket.on('connect_error', (err) => {
 socket.on('lobby-state-update', (state) => {
   console.log('[Client] Received lobby state update:', state);
   uiManager.setLobbyState(state);
+  const arena = getArenaScene();
+  if (arena && state.mapId && arena.getCurrentPackNumber() !== state.mapId) {
+    arena.createParallaxBackground(state.mapId);
+  }
 });
 
 socket.on('lobbies-list', (lobbies) => {
@@ -58,6 +107,11 @@ socket.on('lobbies-list', (lobbies) => {
 });
 
 socket.on('lobby-left', () => {
+  const arena = getArenaScene();
+  if (arena) {
+    arena.setMatchActive(false);
+  }
+  inGameHUD.hide();
   uiManager.clearLobby();
   toast.show('Departed from combat room', 'info');
 });
@@ -66,9 +120,47 @@ socket.on('error-message', (err) => {
   toast.show(err.message, 'error');
 });
 
+// Real-time Gameplay Events
 socket.on('game-started', (payload) => {
   toast.show('All pilots ready! Scrambling fighter wing...', 'success', 3500);
   uiManager.setView('IN_GAME');
+  inGameHUD.show();
+
+  const arena = getArenaScene();
+  if (arena) {
+    arena.setSocketId(socket.id ?? null);
+    arena.setMatchActive(true);
+
+    const mapId = payload.mapId || uiManager.state.currentLobby?.mapId || 1;
+    arena.createParallaxBackground(mapId);
+  }
+});
+
+// Expose helper for live UI preview of selected maps
+(window as any).__arenaSceneHelper = {
+  getArenaScene
+};
+
+socket.on('game-tick', (payload) => {
+  const arena = getArenaScene();
+  if (arena) {
+    arena.handleGameTick(payload);
+  }
+  inGameHUD.updateState(payload.players);
+});
+
+socket.on('player-hit', (payload) => {
+  const arena = getArenaScene();
+  if (arena) {
+    arena.handlePlayerHit(payload);
+  }
+});
+
+socket.on('player-destroyed', (payload) => {
+  const arena = getArenaScene();
+  if (arena) {
+    arena.handlePlayerDestroyed(payload);
+  }
 });
 
 // Listen for direct URL hash changes while app is open
@@ -81,58 +173,3 @@ window.addEventListener('hashchange', () => {
 
 // Initial UI Render
 uiManager.render();
-
-// Setup Initial Phaser Scene
-class BootScene extends Phaser.Scene {
-  constructor() {
-    super('BootScene');
-  }
-
-  create() {
-    // Draw subtle grid / starfield placeholder for the arena
-    const graphics = this.add.graphics();
-    graphics.lineStyle(1, 0x1e293b, 0.4);
-
-    const gridSize = 40;
-    for (let x = 0; x <= ARENA_WIDTH; x += gridSize) {
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, ARENA_HEIGHT);
-    }
-    for (let y = 0; y <= ARENA_HEIGHT; y += gridSize) {
-      graphics.moveTo(0, y);
-      graphics.lineTo(ARENA_WIDTH, y);
-    }
-    graphics.strokePath();
-
-    // Arena border
-    graphics.lineStyle(2, 0x3b82f6, 0.6);
-    graphics.strokeRect(1, 1, ARENA_WIDTH - 2, ARENA_HEIGHT - 2);
-
-    // Decorative center crosshair
-    graphics.lineStyle(1, 0x3b82f6, 0.3);
-    graphics.strokeCircle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, 60);
-    graphics.strokeCircle(ARENA_WIDTH / 2, ARENA_HEIGHT / 2, 120);
-
-    this.add.text(ARENA_WIDTH / 2, ARENA_HEIGHT - 30, 'ARENA DIMENSIONS: 1280 x 720', {
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#64748b'
-    }).setOrigin(0.5);
-  }
-}
-
-const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
-  parent: 'game-container',
-  width: ARENA_WIDTH,
-  height: ARENA_HEIGHT,
-  pixelArt: true,
-  backgroundColor: '#020617',
-  scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
-  },
-  scene: [BootScene]
-};
-
-export const game = new Phaser.Game(config);

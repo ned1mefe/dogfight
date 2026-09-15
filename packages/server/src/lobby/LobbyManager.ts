@@ -39,7 +39,8 @@ export class LobbyManager {
       id: roomId,
       name: payload.lobbyName,
       isPrivate: payload.isPrivate,
-      password: payload.password
+      password: payload.password,
+      mapId: payload.mapId
     });
 
     const player = lobby.addPlayer(socketId, payload.username, payload.password);

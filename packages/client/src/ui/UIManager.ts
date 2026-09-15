@@ -10,7 +10,7 @@ import {
   MAX_USERNAME_LENGTH
 } from '@dogfight/shared';
 import { Socket } from 'socket.io-client';
-import { UIState, ViewState } from './types.js';
+import { UIState, ViewState, MAP_THEMES } from './types.js';
 import { toast } from './toast.js';
 import { copyInviteLink, setLobbyHash, clearLobbyHash } from './router.js';
 
@@ -37,6 +37,7 @@ export class UIManager {
       isConnecting: true,
       socketId: null,
       selectedPlane: null,
+      selectedMapId: 1,
       isReady: false,
       joinTargetLobbyId: null
     };
@@ -73,6 +74,9 @@ export class UIManager {
 
   public setLobbyState(lobby: LobbyState): void {
     this.state.currentLobby = lobby;
+    if (lobby.mapId) {
+      this.state.selectedMapId = lobby.mapId;
+    }
     if (this.socket && this.socket.id) {
       const self = lobby.players.find((p) => p.id === this.socket!.id);
       if (self) {
@@ -340,7 +344,7 @@ export class UIManager {
   // -------------------------------------------------------------
   private renderCreateModal(): HTMLElement {
     const card = document.createElement('div');
-    card.className = 'pointer-events-auto bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200';
+    card.className = 'pointer-events-auto bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200';
 
     const header = document.createElement('div');
     header.className = 'text-center space-y-1';
@@ -351,7 +355,11 @@ export class UIManager {
     card.appendChild(header);
 
     const form = document.createElement('div');
-    form.className = 'space-y-4';
+    form.className = 'space-y-3.5';
+
+    // Nickname & Room Name Inputs side-by-side on sm screens
+    const inputsRow = document.createElement('div');
+    inputsRow.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
 
     // Nickname Input
     const nickGroup = document.createElement('div');
@@ -362,9 +370,9 @@ export class UIManager {
     nickInput.maxLength = MAX_USERNAME_LENGTH;
     nickInput.value = this.state.username;
     nickInput.placeholder = 'Maverick';
-    nickInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
+    nickInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
     nickGroup.appendChild(nickInput);
-    form.appendChild(nickGroup);
+    inputsRow.appendChild(nickGroup);
 
     // Room Name Input
     const nameGroup = document.createElement('div');
@@ -374,9 +382,96 @@ export class UIManager {
     nameInput.type = 'text';
     nameInput.maxLength = 32;
     nameInput.placeholder = 'Dogfight Arena';
-    nameInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
+    nameInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
     nameGroup.appendChild(nameInput);
-    form.appendChild(nameGroup);
+    inputsRow.appendChild(nameGroup);
+
+    form.appendChild(inputsRow);
+
+    // Map / Arena Theme Selection with visual previews
+    const mapGroup = document.createElement('div');
+    mapGroup.className = 'space-y-1.5';
+
+    const currentTheme = MAP_THEMES.find((m) => m.id === this.state.selectedMapId) || MAP_THEMES[0];
+    mapGroup.innerHTML = `
+      <div class="flex items-center justify-between">
+        <label class="block text-xs font-mono font-medium text-slate-300">SECTOR / MAP PREVIEW</label>
+        <span id="selected-map-label" class="text-[11px] font-bold text-sky-400 font-mono">${currentTheme.name}</span>
+      </div>
+    `;
+
+    const mapGrid = document.createElement('div');
+    mapGrid.className = 'grid grid-cols-2 sm:grid-cols-4 gap-2 select-none';
+
+    MAP_THEMES.forEach((theme) => {
+      const isSelected = this.state.selectedMapId === theme.id;
+      const mapCard = document.createElement('div');
+      mapCard.dataset.mapId = String(theme.id);
+      mapCard.className = `group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all p-1 flex flex-col items-center bg-slate-950/70 hover:scale-[1.02] active:scale-95 ${
+        isSelected
+          ? 'border-sky-400 ring-2 ring-sky-400/40 shadow-lg shadow-sky-500/20'
+          : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
+      }`;
+
+      mapCard.innerHTML = `
+        <div class="w-full aspect-video rounded-lg overflow-hidden relative bg-slate-900">
+          <img src="${theme.preview}" alt="${theme.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ${isSelected ? '<span class="absolute top-1 right-1 bg-sky-500 text-[9px] font-black text-slate-950 px-1.5 py-0.5 rounded shadow">ACTIVE</span>' : ''}
+        </div>
+        <span class="text-[10px] font-bold mt-1 tracking-tight text-center truncate w-full ${isSelected ? 'text-sky-300 font-extrabold' : 'text-slate-400'}">${theme.name}</span>
+      `;
+
+      mapCard.onclick = () => {
+        this.state.selectedMapId = theme.id;
+
+        // Live preview background in ArenaScene
+        const helper = (window as any).__arenaSceneHelper;
+        if (helper) {
+          const arena = helper.getArenaScene();
+          if (arena) {
+            arena.createParallaxBackground(theme.id);
+          }
+        }
+
+        // Update cards UI
+        mapGrid.querySelectorAll('[data-map-id]').forEach((node) => {
+          const el = node as HTMLElement;
+          const mapId = Number(el.dataset.mapId);
+          const active = mapId === theme.id;
+          el.className = `group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all p-1 flex flex-col items-center bg-slate-950/70 hover:scale-[1.02] active:scale-95 ${
+            active
+              ? 'border-sky-400 ring-2 ring-sky-400/40 shadow-lg shadow-sky-500/20'
+              : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
+          }`;
+          const badge = el.querySelector('.bg-sky-500');
+          if (active && !badge) {
+            const imgWrapper = el.querySelector('.aspect-video');
+            if (imgWrapper) {
+              const b = document.createElement('span');
+              b.className = 'absolute top-1 right-1 bg-sky-500 text-[9px] font-black text-slate-950 px-1.5 py-0.5 rounded shadow';
+              b.textContent = 'ACTIVE';
+              imgWrapper.appendChild(b);
+            }
+          } else if (!active && badge) {
+            badge.remove();
+          }
+          const textSpan = el.querySelector('span:last-child');
+          if (textSpan) {
+            textSpan.className = `text-[10px] font-bold mt-1 tracking-tight text-center truncate w-full ${active ? 'text-sky-300 font-extrabold' : 'text-slate-400'}`;
+          }
+        });
+
+        const label = document.getElementById('selected-map-label');
+        if (label) {
+          label.textContent = theme.name;
+        }
+      };
+
+      mapGrid.appendChild(mapCard);
+    });
+
+    mapGroup.appendChild(mapGrid);
+    form.appendChild(mapGroup);
 
     // Room Password Input (Optional - automatically makes room private if set)
     const passGroup = document.createElement('div');
@@ -386,7 +481,7 @@ export class UIManager {
     passInput.type = 'password';
     passInput.maxLength = 32;
     passInput.placeholder = 'Leave blank for an open public room';
-    passInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
+    passInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
     passGroup.appendChild(passInput);
     form.appendChild(passGroup);
 
@@ -423,7 +518,8 @@ export class UIManager {
         username,
         lobbyName,
         isPrivate,
-        password: isPrivate ? password : undefined
+        password: isPrivate ? password : undefined,
+        mapId: this.state.selectedMapId || 1
       });
     };
 
@@ -751,12 +847,18 @@ export class UIManager {
       : 'px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-mono font-bold';
     privBadge.textContent = lobby.isPrivate ? '🔒 PRIVATE' : '🌐 PUBLIC';
 
+    const mapTheme = MAP_THEMES.find((m) => m.id === (lobby.mapId || 1)) || MAP_THEMES[0];
+    const mapBadge = document.createElement('div');
+    mapBadge.className = 'flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/80 text-sky-300 border border-slate-700/80 rounded-lg text-xs font-mono font-bold';
+    mapBadge.innerHTML = `<img src="${mapTheme.preview}" class="w-4 h-3 object-cover rounded" /> <span>${mapTheme.name}</span>`;
+
     const titleSpan = document.createElement('span');
     titleSpan.className = 'text-white font-bold text-sm hidden md:inline ml-2';
     titleSpan.textContent = lobby.name;
 
     leftHeader.appendChild(roomCodeBadge);
     leftHeader.appendChild(privBadge);
+    leftHeader.appendChild(mapBadge);
     leftHeader.appendChild(titleSpan);
 
     const rightHeader = document.createElement('div');
