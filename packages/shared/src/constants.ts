@@ -12,12 +12,12 @@ export const MIN_PLAYERS_TO_START = 2;
 export const PLANE_BASE_SPEED = 150; // pixels per second (cruising speed)
 export const PLANE_MAX_SPEED = 250; // pixels per second (maximum speed achieved via straight flight)
 export const PLANE_ACCELERATION = 60; // px/s^2 linear flight acceleration rate
-export const PLANE_TURN_DECELERATION = 80; // px/s^2 rate at which turning bleeds speed back down to base
+export const PLANE_TURN_DECELERATION = 60; // px/s^2 rate at which turning bleeds speed back down to base
 export const PLANE_SPEED = PLANE_BASE_SPEED; // alias for backwards-compatibility
 export const PLANE_ROTATION_SPEED = 3.2; // radians per second
 export const PLANE_MOMENTUM_ALIGNMENT = 1.8; // rate (1/s) at which momentum vector realigns with heading (inertia / swing)
 export const FIRE_COOLDOWN_MS = 330; // ms between shots
-export const BULLET_SPEED = 520; // pixels per second
+export const BULLET_SPEED = 600; // pixels per second
 export const RESPAWN_DELAY_SEC = 5; // seconds
 
 export const PLAYER_COLORS: readonly PlayerColor[] = ['red', 'blue', 'green', 'yellow'] as const;
@@ -42,7 +42,12 @@ export const MAX_USERNAME_LENGTH = 16;
 export const MAX_LOBBY_NAME_LENGTH = 32;
 export const DEFAULT_LOBBY_NAME = 'Dogfight Arena';
 
-export const PLANE_COLLISION_RADIUS = 16;
+export const PLANE_BASE_SIZE = 38; // base width and height in arena pixels
+export const PLANE_SIZE_SCALE = 1.25; // uniform scale multiplier for plane size and hitbox
+export const PLANE_SIZE = Math.round(PLANE_BASE_SIZE * PLANE_SIZE_SCALE);
+
+export const PLANE_COLLISION_BASE_RADIUS = 16;
+export const PLANE_COLLISION_RADIUS = Math.round(PLANE_COLLISION_BASE_RADIUS * PLANE_SIZE_SCALE);
 export const BULLET_COLLISION_RADIUS = 4;
 export const PLANE_RAMMING_DESTRUCTION = true; // Mutual destruction on plane-to-plane collision
 
