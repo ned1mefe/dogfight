@@ -10,7 +10,9 @@ import {
   PlayerInput,
   PlayerColor,
   PLANE_BASE_SPEED,
-  PLANE_MAX_SPEED
+  PLANE_MAX_SPEED,
+  PLANE_SIZE,
+  PLANE_SIZE_SCALE
 } from '@dogfight/shared';
 import { soundManager } from '../audio/SoundManager.js';
 import { socket } from '../../socket.js';
@@ -246,7 +248,7 @@ export class ArenaScene extends Phaser.Scene {
       plane.sprite.setRotation(plane.currentRotation + Math.PI / 2);
 
       // Tail contrail smoke position
-      const tailDistance = 16;
+      const tailDistance = 16 * PLANE_SIZE_SCALE;
       const tailX = plane.currentX - Math.cos(plane.currentRotation) * tailDistance;
       const tailY = plane.currentY - Math.sin(plane.currentRotation) * tailDistance;
       plane.emitter.setPosition(tailX, tailY);
@@ -360,8 +362,8 @@ export class ArenaScene extends Phaser.Scene {
 
     // Plane Sprite
     const sprite = this.add.sprite(0, 0, pState.planeId);
-    // Display size 38x38 matching PLANE_COLLISION_RADIUS = 16
-    sprite.setDisplaySize(38, 38);
+    // Display size matching PLANE_SIZE
+    sprite.setDisplaySize(PLANE_SIZE, PLANE_SIZE);
     sprite.setOrigin(0.5, 0.5);
     container.add(sprite);
 
@@ -372,7 +374,7 @@ export class ArenaScene extends Phaser.Scene {
     const isMe = pState.id === this.localSocketId;
     const nameText = this.add.text(
       0,
-      -26,
+      -26 * PLANE_SIZE_SCALE,
       pState.username + (isMe ? ' (You)' : ''),
       {
         fontFamily: '"Press Start 2P", monospace',
@@ -389,7 +391,7 @@ export class ArenaScene extends Phaser.Scene {
     const emitter = this.add.particles(0, 0, 'particle-smoke', {
       lifespan: 380,
       speed: { min: 8, max: 24 },
-      scale: { start: 0.5, end: 1.3 },
+      scale: { start: 0.5 * PLANE_SIZE_SCALE, end: 1.3 * PLANE_SIZE_SCALE },
       alpha: { start: 0.55, end: 0 },
       frequency: 35,
       blendMode: Phaser.BlendModes.NORMAL
@@ -447,7 +449,7 @@ export class ArenaScene extends Phaser.Scene {
       blendMode: Phaser.BlendModes.ADD,
       emitting: false
     });
-    sparkEmitter.explode(8, hit.x, hit.y);
+    sparkEmitter.explode(8);
     this.time.delayedCall(300, () => sparkEmitter.destroy());
 
     // Flash victim plane sprite
@@ -500,7 +502,7 @@ export class ArenaScene extends Phaser.Scene {
       emitting: false
     });
     debrisEmitter.setDepth(21);
-    debrisEmitter.explode(18, x, y);
+    debrisEmitter.explode(18);
     this.time.delayedCall(700, () => debrisEmitter.destroy());
 
     // 3. Sparks & Fire
@@ -513,7 +515,7 @@ export class ArenaScene extends Phaser.Scene {
       emitting: false
     });
     fireEmitter.setDepth(22);
-    fireEmitter.explode(24, x, y);
+    fireEmitter.explode(24);
     this.time.delayedCall(500, () => fireEmitter.destroy());
 
     // 4. Large smoke puffs
@@ -526,7 +528,7 @@ export class ArenaScene extends Phaser.Scene {
       emitting: false
     });
     smokeEmitter.setDepth(19);
-    smokeEmitter.explode(10, x, y);
+    smokeEmitter.explode(10);
     this.time.delayedCall(800, () => smokeEmitter.destroy());
 
     // 5. Screen shake
