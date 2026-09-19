@@ -16,6 +16,7 @@
     "test:lobby": "npm run test:lobby --workspace=@dogfight/server",
     "test:game": "npm run test:game --workspace=@dogfight/server",
     "test": "npm run test --workspace=@dogfight/server",
+    "start": "node packages/server/dist/index.js",
     "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
   },
   "devDependencies": {
