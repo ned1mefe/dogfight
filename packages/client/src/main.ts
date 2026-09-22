@@ -177,7 +177,8 @@ socket.on('game-over', (payload) => {
     arena.setMatchActive(false);
   }
   inGameHUD.hide();
-  uiManager.setView('LOBBY');
+  uiManager.setWinnerName(winnerName);
+  uiManager.setView('GAME_OVER');
 });
 
 // Listen for direct URL hash changes while app is open
