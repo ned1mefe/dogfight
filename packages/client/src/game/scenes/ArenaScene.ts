@@ -31,6 +31,7 @@ interface PlaneRenderEntity {
   isAlive: boolean;
   planeId: string;
   speed: number;
+  immunityTimer: number;
 }
 
 interface BulletRenderEntity {
@@ -171,7 +172,7 @@ export class ArenaScene extends Phaser.Scene {
     this.handlePlayerInput();
 
     // 3. Smooth Interpolation for Planes (with Toroidal boundary wrapping)
-    this.interpolatePlanes(delta);
+    this.interpolatePlanes(time, delta);
 
     // 4. Smooth Interpolation for Bullets
     this.interpolateBullets(delta);
@@ -208,7 +209,7 @@ export class ArenaScene extends Phaser.Scene {
     }
   }
 
-  private interpolatePlanes(delta: number): void {
+  private interpolatePlanes(time: number, delta: number): void {
     // Lerp rate tuned for smooth 60fps presentation from 30Hz server ticks
     const posLerp = Math.min(1, (delta / 1000) * 22);
     const rotLerp = Math.min(1, (delta / 1000) * 24);
@@ -263,6 +264,18 @@ export class ArenaScene extends Phaser.Scene {
         )
       );
       plane.emitter.frequency = Math.round(Phaser.Math.Linear(35, 14, speedFactor));
+
+      // Handle immunity blinking effect
+      if (plane.immunityTimer > 0) {
+        // Decrease locally for smooth visual transition between ticks
+        plane.immunityTimer = Math.max(0, plane.immunityTimer - delta / 1000);
+        
+        // Blink alpha between 0.3 and 0.8
+        const blinkPhase = Math.floor(time / 100) % 2;
+        plane.sprite.setAlpha(blinkPhase === 0 ? 0.3 : 0.8);
+      } else {
+        plane.sprite.setAlpha(1);
+      }
     }
   }
 
@@ -303,6 +316,7 @@ export class ArenaScene extends Phaser.Scene {
       entity.targetY = pState.y;
       entity.targetRotation = pState.rotation;
       entity.speed = pState.speed ?? PLANE_BASE_SPEED;
+      entity.immunityTimer = pState.immunityTimer ?? 0;
 
       // If entity just spawned or respawned, snap directly to avoid dragging across screen
       if (!entity.isAlive && pState.isAlive) {
@@ -411,7 +425,8 @@ export class ArenaScene extends Phaser.Scene {
       targetRotation: pState.rotation,
       isAlive: pState.isAlive,
       planeId: pState.planeId,
-      speed: pState.speed ?? PLANE_BASE_SPEED
+      speed: pState.speed ?? PLANE_BASE_SPEED,
+      immunityTimer: pState.immunityTimer ?? 0
     };
   }
 
