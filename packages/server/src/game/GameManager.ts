@@ -16,14 +16,15 @@ export class GameManager {
    */
   public startGame(
     lobby: Lobby,
-    io: Server<ClientToServerEvents, ServerToClientEvents>
+    io: Server<ClientToServerEvents, ServerToClientEvents>,
+    onGameOver?: (winnerId: string) => void
   ): GameRoom {
     const existing = this.gameRooms.get(lobby.id);
     if (existing) {
       existing.stop();
     }
 
-    const room = new GameRoom(lobby.id, lobby.toState().players, io);
+    const room = new GameRoom(lobby.id, lobby.toState().players, io, lobby.settings, onGameOver);
 
     for (const player of lobby.toState().players) {
       this.playerRoomIndex.set(player.id, lobby.id);

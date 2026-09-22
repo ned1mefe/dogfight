@@ -14,6 +14,8 @@ export interface CreateLobbyPayload {
   isPrivate: boolean;
   password?: string;
   mapId?: number;
+  resurrectTimeSec?: number;
+  killCap?: number;
 }
 
 export interface JoinLobbyPayload {
@@ -45,6 +47,11 @@ export interface ClientToServerEvents {
   'input-update': (payload: PlayerInput) => void;
 }
 
+export interface GameOverPayload {
+  winnerId: string;
+  scores: Record<string, number>;
+}
+
 export interface ServerToClientEvents {
   'lobby-state-update': (state: LobbyState) => void;
   'lobbies-list': (lobbies: LobbySummary[]) => void;
@@ -53,5 +60,6 @@ export interface ServerToClientEvents {
   'game-tick': (payload: GameStateTick) => void;
   'player-hit': (payload: HitEventPayload) => void;
   'player-destroyed': (payload: DestroyedEventPayload) => void;
+  'game-over': (payload: GameOverPayload) => void;
   'error-message': (payload: ErrorPayload) => void;
 }

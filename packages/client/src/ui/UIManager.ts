@@ -344,7 +344,7 @@ export class UIManager {
   // -------------------------------------------------------------
   private renderCreateModal(): HTMLElement {
     const card = document.createElement('div');
-    card.className = 'pointer-events-auto bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200';
+    card.className = 'pointer-events-auto bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl p-5 sm:p-6 max-w-2xl w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200';
 
     const header = document.createElement('div');
     header.className = 'text-center space-y-1';
@@ -485,6 +485,47 @@ export class UIManager {
     passGroup.appendChild(passInput);
     form.appendChild(passGroup);
 
+    // Game Settings Row
+    const settingsRow = document.createElement('div');
+    settingsRow.className = 'grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-800';
+
+    // Resurrect Time Slider
+    const resGroup = document.createElement('div');
+    resGroup.className = 'space-y-1.5';
+    resGroup.innerHTML = `
+      <div class="flex items-center justify-between">
+        <label class="block text-xs font-mono font-medium text-slate-300">RESURRECT TIME (SEC)</label>
+        <span id="resurrect-label" class="text-xs font-bold text-sky-400 font-mono">5</span>
+      </div>
+    `;
+    const resInput = document.createElement('input');
+    resInput.type = 'range';
+    resInput.min = '1';
+    resInput.max = '5';
+    resInput.value = '5';
+    resInput.className = 'w-full accent-sky-500 cursor-pointer';
+    resInput.oninput = () => {
+      const label = document.getElementById('resurrect-label');
+      if (label) label.textContent = resInput.value;
+    };
+    resGroup.appendChild(resInput);
+
+    // Kill Cap Input
+    const killGroup = document.createElement('div');
+    killGroup.className = 'space-y-1.5';
+    killGroup.innerHTML = `<label class="block text-xs font-mono font-medium text-slate-300">KILL CAP (TO WIN)</label>`;
+    const killInput = document.createElement('input');
+    killInput.type = 'number';
+    killInput.min = '1';
+    killInput.placeholder = 'e.g. 10 (Leave empty for endless)';
+    killInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
+    killGroup.appendChild(killInput);
+
+    settingsRow.appendChild(resGroup);
+    settingsRow.appendChild(killGroup);
+    
+    form.appendChild(settingsRow);
+
     // Buttons
     const btnGroup = document.createElement('div');
     btnGroup.className = 'flex items-center space-x-3 pt-2';
@@ -519,7 +560,9 @@ export class UIManager {
         lobbyName,
         isPrivate,
         password: isPrivate ? password : undefined,
-        mapId: this.state.selectedMapId || 1
+        mapId: this.state.selectedMapId || 1,
+        resurrectTimeSec: parseInt(resInput.value) || 5,
+        killCap: parseInt(killInput.value) || 0
       });
     };
 

@@ -59,6 +59,10 @@ export class Lobby {
   public isGameStarted = false;
   public hostSocketId: string | null = null;
   public mapId: number = 1;
+  public settings: {
+    resurrectTimeSec: number;
+    killCap: number;
+  };
 
   private players: Map<string, PlayerState> = new Map();
   private availableColors: PlayerColor[] = [...PLAYER_COLORS];
@@ -70,11 +74,17 @@ export class Lobby {
     isPrivate: boolean;
     password?: string;
     mapId?: number;
+    resurrectTimeSec?: number;
+    killCap?: number;
   }) {
     this.id = options.id || generateRoomId();
     this.name = this.sanitizeLobbyName(options.name);
     this.isPrivate = options.isPrivate;
     this.mapId = options.mapId && options.mapId >= 1 && options.mapId <= 8 ? options.mapId : 1;
+    this.settings = {
+      resurrectTimeSec: options.resurrectTimeSec ?? 5,
+      killCap: options.killCap ?? 0
+    };
 
     if (this.isPrivate) {
       if (!options.password || options.password.trim().length === 0) {
@@ -279,6 +289,17 @@ export class Lobby {
     this.isGameStarted = true;
   }
 
+  public endGame(): void {
+    this.isGameStarted = false;
+    for (const player of this.players.values()) {
+      player.ready = false;
+      player.score = 0;
+      player.isAlive = true;
+      player.respawnTimer = 0;
+      player.immunityTimer = 0;
+    }
+  }
+
   public getPlayer(socketId: string): PlayerState | undefined {
     return this.players.get(socketId);
   }
@@ -295,7 +316,8 @@ export class Lobby {
       players: Array.from(this.players.values()),
       availablePlanes: [...this.availablePlanes],
       isGameStarted: this.isGameStarted,
-      mapId: this.mapId
+      mapId: this.mapId,
+      settings: this.settings
     };
   }
 

@@ -118,7 +118,13 @@ export function registerLobbyHandlers(
       // If all players ready (min 2), auto-start game
       if (canStart) {
         lobbyManager.startGame(lobby.id);
-        const gameRoom = gameManager.startGame(lobby, io);
+        const gameRoom = gameManager.startGame(lobby, io, (winnerId) => {
+          gameManager.stopGame(lobby.id);
+          lobby.endGame();
+          io.to(roomName).emit('game-over', { winnerId, scores: gameRoom.getScores() });
+          io.to(roomName).emit('lobby-state-update', lobby.toState());
+          broadcastPublicLobbies(io, lobbyManager);
+        });
         io.to(roomName).emit('lobby-state-update', lobby.toState());
         io.to(roomName).emit('game-started', { lobbyId: lobby.id, mapId: lobby.mapId });
 

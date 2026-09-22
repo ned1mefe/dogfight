@@ -46,15 +46,21 @@ export class GameRoom {
   private currentTick = 0;
   private lastTickTime = 0;
   public isRunning = false;
+  private readonly settings: { resurrectTimeSec: number; killCap: number };
+  private readonly onGameOver?: (winnerId: string) => void;
 
   constructor(
     lobbyId: string,
     initialPlayers: PlayerState[],
-    io: Server<ClientToServerEvents, ServerToClientEvents>
+    io: Server<ClientToServerEvents, ServerToClientEvents>,
+    settings: { resurrectTimeSec: number; killCap: number },
+    onGameOver?: (winnerId: string) => void
   ) {
     this.lobbyId = lobbyId;
     this.roomName = `lobby:${lobbyId.trim().toUpperCase()}`;
     this.io = io;
+    this.settings = settings;
+    this.onGameOver = onGameOver;
 
     for (const player of initialPlayers) {
       const speed = player.speed ?? PLANE_BASE_SPEED;
@@ -243,12 +249,17 @@ export class GameRoom {
         if (hit) {
           // Victim destroyed
           victim.isAlive = false;
-          victim.respawnTimer = RESPAWN_DELAY_SEC;
+          victim.respawnTimer = this.settings.resurrectTimeSec;
 
           // Award score to shooter
           const shooter = this.players.get(bullet.ownerId);
           if (shooter) {
             shooter.score += 1;
+            
+            if (this.settings.killCap > 0 && shooter.score >= this.settings.killCap) {
+              if (this.onGameOver) this.onGameOver(shooter.id);
+              return;
+            }
           }
 
           // Consume bullet
@@ -298,10 +309,10 @@ export class GameRoom {
           if (collides) {
             // Mutual mid-air destruction
             p1.isAlive = false;
-            p1.respawnTimer = RESPAWN_DELAY_SEC;
+            p1.respawnTimer = this.settings.resurrectTimeSec;
 
             p2.isAlive = false;
-            p2.respawnTimer = RESPAWN_DELAY_SEC;
+            p2.respawnTimer = this.settings.resurrectTimeSec;
 
             const midX = (p1.x + p2.x) / 2;
             const midY = (p1.y + p2.y) / 2;

@@ -53,6 +53,10 @@ export interface LobbyState {
   availablePlanes: PlaneId[];
   isGameStarted: boolean;
   mapId?: number;
+  settings: {
+    resurrectTimeSec: number;
+    killCap: number;
+  };
 }
 
 export interface GameStateTick {
