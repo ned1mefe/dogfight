@@ -7,7 +7,8 @@ export type ViewState =
   | 'JOIN_MODAL'
   | 'ROOM'
   | 'HOW_TO_PLAY'
-  | 'IN_GAME';
+  | 'IN_GAME'
+  | 'GAME_OVER';
 
 export interface UIState {
   currentView: ViewState;
@@ -23,6 +24,7 @@ export interface UIState {
   joinTargetLobbyId: string | null;
   joinTargetIsPrivate?: boolean;
   joinTargetLobbyName?: string | null;
+  lastWinnerName?: string;
 }
 
 export interface MapThemeInfo {

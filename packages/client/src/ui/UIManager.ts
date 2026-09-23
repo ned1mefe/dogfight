@@ -85,7 +85,11 @@ export class UIManager {
       }
     }
     setLobbyHash(lobby.id);
-    this.setView('ROOM');
+    if (this.state.currentView !== 'GAME_OVER' && this.state.currentView !== 'IN_GAME') {
+      this.setView('ROOM');
+    } else {
+      this.render(); // Just re-render to update state without changing view
+    }
   }
 
   public clearLobby(): void {
@@ -100,6 +104,16 @@ export class UIManager {
 
   public setUsername(username: string): void {
     this.state.username = username.trim();
+  }
+
+  public setJoinTargetLobby(lobbyId: string | null, isPrivate?: boolean, lobbyName?: string | null): void {
+    this.state.joinTargetLobbyId = lobbyId;
+    this.state.joinTargetIsPrivate = isPrivate;
+    this.state.joinTargetLobbyName = lobbyName;
+  }
+
+  public setWinnerName(name: string): void {
+    this.state.lastWinnerName = name;
   }
 
   public promptJoinLobby(lobbyId: string, isPrivate?: boolean, lobbyName?: string): void {
@@ -152,6 +166,9 @@ export class UIManager {
         break;
       case 'ROOM':
         viewNode = this.renderRoomView();
+        break;
+      case 'GAME_OVER':
+        viewNode = this.renderGameOverScreen();
         break;
       default:
         viewNode = this.renderMenuView();
@@ -344,7 +361,7 @@ export class UIManager {
   // -------------------------------------------------------------
   private renderCreateModal(): HTMLElement {
     const card = document.createElement('div');
-    card.className = 'pointer-events-auto bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200';
+    card.className = 'pointer-events-auto bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl p-5 sm:p-6 max-w-2xl w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200';
 
     const header = document.createElement('div');
     header.className = 'text-center space-y-1';
@@ -485,6 +502,47 @@ export class UIManager {
     passGroup.appendChild(passInput);
     form.appendChild(passGroup);
 
+    // Game Settings Row
+    const settingsRow = document.createElement('div');
+    settingsRow.className = 'grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-800';
+
+    // Resurrect Time Slider
+    const resGroup = document.createElement('div');
+    resGroup.className = 'space-y-1.5';
+    resGroup.innerHTML = `
+      <div class="flex items-center justify-between">
+        <label class="block text-xs font-mono font-medium text-slate-300">RESURRECT TIME (SEC)</label>
+        <span id="resurrect-label" class="text-xs font-bold text-sky-400 font-mono">5</span>
+      </div>
+    `;
+    const resInput = document.createElement('input');
+    resInput.type = 'range';
+    resInput.min = '1';
+    resInput.max = '5';
+    resInput.value = '5';
+    resInput.className = 'w-full accent-sky-500 cursor-pointer';
+    resInput.oninput = () => {
+      const label = document.getElementById('resurrect-label');
+      if (label) label.textContent = resInput.value;
+    };
+    resGroup.appendChild(resInput);
+
+    // Kill Cap Input
+    const killGroup = document.createElement('div');
+    killGroup.className = 'space-y-1.5';
+    killGroup.innerHTML = `<label class="block text-xs font-mono font-medium text-slate-300">KILL CAP (TO WIN)</label>`;
+    const killInput = document.createElement('input');
+    killInput.type = 'number';
+    killInput.min = '1';
+    killInput.placeholder = 'e.g. 10 (Leave empty for endless)';
+    killInput.className = 'w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-1.5 text-sm font-medium text-white placeholder-slate-600 focus:outline-none focus:border-blue-500';
+    killGroup.appendChild(killInput);
+
+    settingsRow.appendChild(resGroup);
+    settingsRow.appendChild(killGroup);
+    
+    form.appendChild(settingsRow);
+
     // Buttons
     const btnGroup = document.createElement('div');
     btnGroup.className = 'flex items-center space-x-3 pt-2';
@@ -519,7 +577,9 @@ export class UIManager {
         lobbyName,
         isPrivate,
         password: isPrivate ? password : undefined,
-        mapId: this.state.selectedMapId || 1
+        mapId: this.state.selectedMapId || 1,
+        resurrectTimeSec: parseInt(resInput.value) || 5,
+        killCap: parseInt(killInput.value) || 0
       });
     };
 
@@ -1174,5 +1234,48 @@ export class UIManager {
           badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
         };
     }
+  }
+
+  // -------------------------------------------------------------
+  // Game Over Screen
+  // -------------------------------------------------------------
+  private renderGameOverScreen(): HTMLElement {
+    const card = document.createElement('div');
+    card.className = 'pointer-events-auto bg-slate-900/95 border border-slate-700/80 backdrop-blur-xl rounded-2xl p-6 sm:p-8 max-w-lg w-full text-center shadow-2xl animate-in fade-in zoom-in duration-300';
+    
+    card.innerHTML = `
+      <div class="mb-6">
+        <h2 class="text-3xl font-bold text-yellow-400 mb-2" style="font-family: 'Press Start 2P', monospace;">GAME OVER</h2>
+        <p class="text-slate-400 text-sm font-mono tracking-widest mt-4">WINNER</p>
+        <div class="text-3xl font-black text-white mt-1 uppercase">${this.state.lastWinnerName || 'Unknown'}</div>
+      </div>
+    `;
+
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'flex items-center space-x-3 mt-2';
+
+    const leaveBtn = document.createElement('button');
+    leaveBtn.className = 'flex-1 py-3 px-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer font-mono border border-slate-700';
+    leaveBtn.textContent = 'LEAVE ROOM';
+    leaveBtn.onclick = () => {
+      if (this.socket) {
+        this.socket.emit('leave-lobby');
+      }
+      this.clearLobby();
+      this.setView('BROWSER');
+    };
+
+    const continueBtn = document.createElement('button');
+    continueBtn.className = 'flex-[2] py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-900/30 transition-all cursor-pointer font-mono';
+    continueBtn.textContent = 'CONTINUE TO LOBBY';
+    continueBtn.onclick = () => {
+      this.setView('ROOM');
+    };
+
+    btnGroup.appendChild(leaveBtn);
+    btnGroup.appendChild(continueBtn);
+
+    card.appendChild(btnGroup);
+    return card;
   }
 }

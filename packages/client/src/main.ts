@@ -163,6 +163,24 @@ socket.on('player-destroyed', (payload) => {
   }
 });
 
+socket.on('game-over', (payload) => {
+  let winnerName = 'Unknown Pilot';
+  if (uiManager.state.currentLobby) {
+    const winner = uiManager.state.currentLobby.players.find((p) => p.id === payload.winnerId);
+    if (winner) winnerName = winner.username;
+  }
+  
+  toast.show(`🏆 GAME OVER! WINNER: ${winnerName} 🏆`, 'success', 6000);
+  
+  const arena = getArenaScene();
+  if (arena) {
+    arena.setMatchActive(false);
+  }
+  inGameHUD.hide();
+  uiManager.setWinnerName(winnerName);
+  uiManager.setView('GAME_OVER');
+});
+
 // Listen for direct URL hash changes while app is open
 window.addEventListener('hashchange', () => {
   const targetCode = parseLobbyHash();
