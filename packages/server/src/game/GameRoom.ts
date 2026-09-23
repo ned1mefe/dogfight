@@ -8,6 +8,7 @@ import {
   PLANE_SPEED,
   FIRE_COOLDOWN_MS,
   RESPAWN_DELAY_SEC,
+  IMMUNITY_DURATION_SEC,
   PLANE_COLLISION_RADIUS,
   BULLET_COLLISION_RADIUS,
   PLANE_RAMMING_DESTRUCTION,
@@ -157,7 +158,7 @@ export class GameRoom {
           player.vx = Math.cos(spawn.rotation) * PLANE_BASE_SPEED;
           player.vy = Math.sin(spawn.rotation) * PLANE_BASE_SPEED;
           player.isAlive = true;
-          player.immunityTimer = 1.0;
+          player.immunityTimer = IMMUNITY_DURATION_SEC;
         }
       }
     }
