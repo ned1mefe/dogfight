@@ -23,6 +23,7 @@ export interface PlayerState {
   speed?: number;
   isAlive: boolean;
   respawnTimer: number; // seconds remaining, 0 when alive
+  immunityTimer?: number; // seconds remaining, 0 when not immune
   score: number;
   ready: boolean;
 }

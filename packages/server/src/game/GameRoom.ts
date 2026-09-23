@@ -8,6 +8,7 @@ import {
   PLANE_SPEED,
   FIRE_COOLDOWN_MS,
   RESPAWN_DELAY_SEC,
+  IMMUNITY_DURATION_SEC,
   PLANE_COLLISION_RADIUS,
   BULLET_COLLISION_RADIUS,
   PLANE_RAMMING_DESTRUCTION,
@@ -66,7 +67,8 @@ export class GameRoom {
         vy,
         speed,
         input: { left: false, right: false, fire: false },
-        lastFiredTime: 0
+        lastFiredTime: 0,
+        immunityTimer: 0
       });
     }
   }
@@ -156,6 +158,7 @@ export class GameRoom {
           player.vx = Math.cos(spawn.rotation) * PLANE_BASE_SPEED;
           player.vy = Math.sin(spawn.rotation) * PLANE_BASE_SPEED;
           player.isAlive = true;
+          player.immunityTimer = IMMUNITY_DURATION_SEC;
         }
       }
     }
@@ -163,6 +166,10 @@ export class GameRoom {
     // 2. Plane Kinematics & Steering (alive players only)
     for (const player of this.players.values()) {
       if (player.isAlive) {
+        if (player.immunityTimer && player.immunityTimer > 0) {
+          player.immunityTimer = Math.max(0, player.immunityTimer - dt);
+        }
+
         const next = updatePlaneKinematics(
           player.x,
           player.y,
@@ -229,6 +236,7 @@ export class GameRoom {
     for (const [bulletId, bullet] of this.bullets.entries()) {
       for (const victim of this.players.values()) {
         if (!victim.isAlive) continue;
+        if (victim.immunityTimer && victim.immunityTimer > 0) continue;
         if (bullet.ownerId === victim.id) continue; // Ignore friendly fire
 
         const hit = checkCircleCollision(
@@ -285,6 +293,7 @@ export class GameRoom {
           const p2 = alivePlayers[j];
 
           if (!p1.isAlive || !p2.isAlive) continue;
+          if ((p1.immunityTimer && p1.immunityTimer > 0) || (p2.immunityTimer && p2.immunityTimer > 0)) continue;
 
           const collides = checkCircleCollision(
             p1.x,
@@ -355,6 +364,7 @@ export class GameRoom {
       speed: Math.round(player.speed),
       isAlive: player.isAlive,
       respawnTimer: Math.round(player.respawnTimer * 10) / 10,
+      immunityTimer: Math.round((player.immunityTimer || 0) * 10) / 10,
       score: player.score,
       ready: player.ready
     };

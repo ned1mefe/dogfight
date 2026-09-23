@@ -19,6 +19,7 @@ export const PLANE_MOMENTUM_ALIGNMENT = 1.8; // rate (1/s) at which momentum vec
 export const FIRE_COOLDOWN_MS = 330; // ms between shots
 export const BULLET_SPEED = 600; // pixels per second
 export const RESPAWN_DELAY_SEC = 5; // seconds
+export const IMMUNITY_DURATION_SEC = 1.5; // seconds
 
 export const PLAYER_COLORS: readonly PlayerColor[] = ['red', 'blue', 'green', 'yellow'] as const;
 
