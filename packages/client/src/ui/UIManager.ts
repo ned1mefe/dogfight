@@ -9,6 +9,8 @@ import {
   MIN_USERNAME_LENGTH,
   MAX_USERNAME_LENGTH,
   RESURRECT_TIME_SEC,
+  FIRE_COOLDOWN_MS,
+  IMMUNITY_DURATION_SEC,
 } from '@dogfight/shared';
 import { Socket } from 'socket.io-client';
 import { UIState, ViewState, MAP_THEMES } from './types.js';
@@ -838,7 +840,7 @@ export class UIManager {
         <span class="text-xl">🔄</span>
         <div>
           <strong class="text-sky-400 text-sm block">FLIGHT CONTROLS</strong>
-          Left & Right Arrow Keys (or A / D) adjust rotation. Planes maintain constant forward airspeed.
+          Left & Right Arrow Keys (or A / D) adjust rotation. Flying straight builds up speed; turning bleeds it back down, and momentum makes the plane swing wide in turns.
         </div>
       </div>
 
@@ -846,7 +848,7 @@ export class UIManager {
         <span class="text-xl">💥</span>
         <div>
           <strong class="text-amber-400 text-sm block">MACHINE GUN FIRE</strong>
-          Spacebar fires bullets along your heading. Bullets fly forward with high velocity (200ms cooldown).
+          Spacebar fires bullets along your heading (${FIRE_COOLDOWN_MS}ms cooldown). Bullets disappear at the arena edge.
         </div>
       </div>
 
@@ -854,15 +856,23 @@ export class UIManager {
         <span class="text-xl">🌐</span>
         <div>
           <strong class="text-emerald-400 text-sm block">SCREEN WRAPPING</strong>
-          Flying off any edge of the arena seamlessly transports your plane to the opposite side!
+          Flying off any edge of the arena transports your plane to the opposite side.
+        </div>
+      </div>
+
+      <div class="flex items-start space-x-3 p-3 bg-slate-950/70 rounded-xl border border-slate-800">
+        <span class="text-xl">☠️</span>
+        <div>
+          <strong class="text-rose-400 text-sm block">DEATH & RESPAWN</strong>
+          Mid-air collisions destroy both planes. Destroyed planes respawn at an arena edge after the room's resurrect time, with ${IMMUNITY_DURATION_SEC}s of spawn immunity.
         </div>
       </div>
 
       <div class="flex items-start space-x-3 p-3 bg-slate-950/70 rounded-xl border border-slate-800">
         <span class="text-xl">🏁</span>
         <div>
-          <strong class="text-indigo-400 text-sm block">MATCH START</strong>
-          2 to 4 pilots per room. As soon as all connected players toggle "READY", the match launches!
+          <strong class="text-indigo-400 text-sm block">MATCH START & VICTORY</strong>
+          2 to 4 pilots per room. The match launches once all players are "READY". If the room has a kill cap, the first pilot to reach it wins.
         </div>
       </div>
     `;
