@@ -10,7 +10,7 @@ import {
   ARENA_WIDTH,
   ARENA_HEIGHT,
   PLANE_SPEED,
-  RESPAWN_DELAY_SEC
+  RESURRECT_TIME_SEC
 } from '@dogfight/shared';
 import { createDogfightServer } from '../src/server.js';
 

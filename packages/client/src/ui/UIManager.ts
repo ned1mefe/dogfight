@@ -7,7 +7,8 @@ import {
   PLANE_IDS,
   PLAYER_COLORS,
   MIN_USERNAME_LENGTH,
-  MAX_USERNAME_LENGTH
+  MAX_USERNAME_LENGTH,
+  RESURRECT_TIME_SEC,
 } from '@dogfight/shared';
 import { Socket } from 'socket.io-client';
 import { UIState, ViewState, MAP_THEMES } from './types.js';
@@ -424,11 +425,10 @@ export class UIManager {
       const isSelected = this.state.selectedMapId === theme.id;
       const mapCard = document.createElement('div');
       mapCard.dataset.mapId = String(theme.id);
-      mapCard.className = `group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all p-1 flex flex-col items-center bg-slate-950/70 hover:scale-[1.02] active:scale-95 ${
-        isSelected
-          ? 'border-sky-400 ring-2 ring-sky-400/40 shadow-lg shadow-sky-500/20'
-          : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
-      }`;
+      mapCard.className = `group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all p-1 flex flex-col items-center bg-slate-950/70 hover:scale-[1.02] active:scale-95 ${isSelected
+        ? 'border-sky-400 ring-2 ring-sky-400/40 shadow-lg shadow-sky-500/20'
+        : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
+        }`;
 
       mapCard.innerHTML = `
         <div class="w-full aspect-video rounded-lg overflow-hidden relative bg-slate-900">
@@ -455,11 +455,10 @@ export class UIManager {
           const el = node as HTMLElement;
           const mapId = Number(el.dataset.mapId);
           const active = mapId === theme.id;
-          el.className = `group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all p-1 flex flex-col items-center bg-slate-950/70 hover:scale-[1.02] active:scale-95 ${
-            active
-              ? 'border-sky-400 ring-2 ring-sky-400/40 shadow-lg shadow-sky-500/20'
-              : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
-          }`;
+          el.className = `group relative cursor-pointer rounded-xl overflow-hidden border-2 transition-all p-1 flex flex-col items-center bg-slate-950/70 hover:scale-[1.02] active:scale-95 ${active
+            ? 'border-sky-400 ring-2 ring-sky-400/40 shadow-lg shadow-sky-500/20'
+            : 'border-slate-800 hover:border-slate-600 opacity-70 hover:opacity-100'
+            }`;
           const badge = el.querySelector('.bg-sky-500');
           if (active && !badge) {
             const imgWrapper = el.querySelector('.aspect-video');
@@ -518,7 +517,7 @@ export class UIManager {
     const resInput = document.createElement('input');
     resInput.type = 'range';
     resInput.min = '1';
-    resInput.max = '5';
+    resInput.max = String(RESURRECT_TIME_SEC);
     resInput.value = '5';
     resInput.className = 'w-full accent-sky-500 cursor-pointer';
     resInput.oninput = () => {
